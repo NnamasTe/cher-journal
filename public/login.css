@@ -1,0 +1,145 @@
+.tela-entrada {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+/* ---- logo (esquerda) ---- */
+.logo {
+  justify-self: start;
+  padding-left: 4vw;
+}
+
+.logo img {
+  display: block;
+  width: clamp(260px, 42vw, 576px);
+  height: auto;
+}
+
+/* ---- formulário (direita) ---- */
+.entrada {
+  justify-self: center;
+  position: relative;
+  width: min(398px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1.75rem;
+  font-size: clamp(17px, 4.6vw, 26px);
+  letter-spacing: 0.01em;
+}
+
+.entrada h1 {
+  margin: 0;
+  font-size: 1em;
+  font-weight: 400;
+  text-align: center;
+}
+
+/* caixa da senha: a frase da tela fica por cima e some quando começa a digitar */
+.caixa-senha {
+  position: relative;
+  min-height: 85px;
+  border-radius: 999px;
+  background: var(--marrom);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.caixa-senha:focus-within {
+  box-shadow: 0 0 0 3px rgba(115, 48, 21, 0.4);
+}
+
+.caixa-senha input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0 1.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--marrom-escuro);
+  font: inherit;
+  letter-spacing: 0.12em;
+  text-align: center;
+  outline: none;
+}
+
+.caixa-senha .dica {
+  padding: 0.4rem 0.5rem;
+  line-height: 1.42;
+  text-align: center;
+  pointer-events: none;
+}
+
+.caixa-senha input:not(:placeholder-shown) ~ .dica {
+  display: none;
+}
+
+.botao {
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--marrom);
+  color: var(--marrom-escuro);
+  font: inherit;
+  font-weight: 700;
+  font-style: italic;
+  cursor: pointer;
+}
+
+.botao:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.botao:focus-visible {
+  outline: 3px solid rgba(115, 48, 21, 0.4);
+  outline-offset: 2px;
+}
+
+.botao:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.mensagem {
+  /* fora do fluxo: não desloca o resto da tela quando aparece */
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  left: 0;
+  right: 0;
+  margin: 0;
+  font-size: 0.7em;
+  font-style: italic;
+  text-align: center;
+}
+
+/* ---- celular: logo em cima, formulário embaixo ---- */
+@media (max-width: 800px) {
+  .tela-entrada {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    align-content: center;
+    gap: 2rem;
+    padding: 2rem 1.25rem;
+  }
+
+  .logo {
+    justify-self: center;
+    padding-left: 0;
+  }
+
+  .logo img {
+    width: min(70vw, 360px);
+  }
+
+  .entrada {
+    width: min(398px, 100%);
+  }
+}

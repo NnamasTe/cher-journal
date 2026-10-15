@@ -1,0 +1,30 @@
+/* Cores e fontes do design, compartilhadas por todas as telas. */
+:root {
+  --fundo: #e8d1a7;
+  --marrom: #b58f6a;
+  --marrom-escuro: #733015;
+  --fonte: "Courier New", Courier, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--fundo);
+  color: var(--marrom-escuro);
+  font-family: var(--fonte);
+  -webkit-text-size-adjust: 100%;
+}
+
+[hidden] {
+  display: none !important;
+}

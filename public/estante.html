@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>cher journal</title>
+  <link rel="stylesheet" href="/base.css">
+  <style>
+    main { max-width: 480px; margin: 3rem auto; padding: 0 1rem; }
+    input, button { font: inherit; padding: .5rem .7rem; margin: .25rem 0; }
+    .aviso { font-size: .85rem; opacity: .7; }
+    .erro { color: var(--marrom-escuro); font-style: italic; }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="aviso">Tela provisória da estante, só para testar o banco. O design real entra no próximo passo.</p>
+    <h1>estante</h1>
+
+    <form id="formJournal">
+      <input id="titulo" placeholder="título do novo journal" maxlength="120" required>
+      <button>criar</button>
+    </form>
+    <ul id="lista"></ul>
+    <button id="sair">sair</button>
+    <p id="msg" class="erro"></p>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    async function api(caminho, opcoes = {}) {
+      const r = await fetch(caminho, { headers: { 'Content-Type': 'application/json' }, ...opcoes });
+      if (r.status === 401) { window.location.replace('/'); throw new Error('sessão encerrada'); }
+      const corpo = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(corpo.erro || 'Algo deu errado.');
+      return corpo;
+    }
+
+    async function carregar() {
+      const journals = await api('/api/journals');
+      $('lista').innerHTML = '';
+      for (const j of journals) {
+        const li = document.createElement('li');
+        li.textContent = `${j.titulo} (${j.qttd_Paginas} páginas)`;
+        $('lista').appendChild(li);
+      }
+    }
+
+    $('formJournal').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await api('/api/journals', { method: 'POST', body: JSON.stringify({ titulo: $('titulo').value }) });
+        $('titulo').value = '';
+        await carregar();
+      } catch (err) { $('msg').textContent = err.message; }
+    });
+
+    $('sair').addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.replace('/');
+    });
+
+    carregar().catch((err) => { $('msg').textContent = err.message; });
+  </script>
+</body>
+</html>
