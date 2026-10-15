@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Journal {
+  id           String   @id @default(cuid())
+  titulo       String
+  capa         String   @default("/capa-padrao.png")
+  qttd_Paginas Int      @default(0)
+  data_Criacao DateTime @default(now())
+  paginas      Pagina[]
+}
+
+model Pagina {
+  id          String   @id @default(cuid())
+  textura_Pag String   @default("padrao")
+  cor_Texto   String   @default("#3b2f2f")
+  data        DateTime @default(now())
+  imagens     String[]
+  anotacoes   String   @default("") @db.Text
+  journalId   String
+  journal     Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+
+  @@index([journalId])
+}
