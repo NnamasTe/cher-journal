@@ -17,9 +17,10 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "@vercel/blob": "^1.1.1",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
-    "dotenv": "^16.6.1",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2"
   },
