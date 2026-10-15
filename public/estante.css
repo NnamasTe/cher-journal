@@ -1,0 +1,611 @@
+/* ===== estante: medidas tiradas do design (tela de 1366px) ===== */
+
+.pagina {
+  width: min(1140px, 100% - 2rem);
+  margin: 0 auto;
+  padding: 49px 0 100px;
+}
+
+/* ---------- topo ---------- */
+.topo {
+  display: grid;
+  grid-template-columns: 321px 1fr;
+  align-items: start;
+  padding-right: 6px;
+}
+
+.logo {
+  display: block;
+  width: 228px;
+  height: auto;
+  margin-top: 18px;
+}
+
+.comandos {
+  position: relative;
+}
+
+/* barra de pesquisa */
+.busca {
+  position: relative;
+  display: block;
+  height: 29px;
+  border-radius: 15px;
+  background: var(--marrom);
+}
+
+.busca:focus-within {
+  box-shadow: 0 0 0 3px rgba(115, 48, 21, 0.4);
+}
+
+.busca input {
+  width: 100%;
+  height: 100%;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 15px;
+  background: transparent;
+  color: var(--marrom-escuro);
+  font: 700 20px var(--fonte);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.busca input::-webkit-search-decoration,
+.busca input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.busca .dica {
+  position: absolute;
+  top: 0;
+  right: 15px;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 20px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.busca .lupa {
+  width: 17px;
+  height: 17px;
+}
+
+.busca input:focus ~ .dica,
+.busca input:not(:placeholder-shown) ~ .dica {
+  display: none;
+}
+
+/* três botões de ação */
+.acoes {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 35px;
+}
+
+.acao {
+  position: relative;
+  min-width: 209px;
+  height: 76px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 26px;
+  background: var(--marrom);
+  color: var(--marrom-escuro);
+  font: italic 700 21px var(--fonte);
+  cursor: pointer;
+}
+
+.acao:hover {
+  filter: brightness(0.96);
+}
+
+.acao:focus-visible {
+  outline: 3px solid rgba(115, 48, 21, 0.45);
+  outline-offset: 3px;
+}
+
+.acao[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 3px var(--marrom-escuro);
+}
+
+.estrela {
+  position: absolute;
+  top: -19px;
+  left: -9px;
+  width: 38px;
+  height: 38px;
+  color: var(--estrela);
+  pointer-events: none;
+}
+
+/* aviso curto sob os botões: não empurra o resto da tela */
+.aviso {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  font-size: 16px;
+  font-style: italic;
+  text-align: center;
+}
+
+/* ---------- grade de journals ---------- */
+.grade {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  column-gap: 33px;
+  row-gap: 40px;
+  margin-top: 69px;
+  padding: 0 3px;
+}
+
+.journal {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: default;
+}
+
+.journal .meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+  padding: 0 9px;
+  font-size: 18.5px;
+  line-height: 24px;
+  white-space: nowrap;
+}
+
+.journal .data {
+  font-style: italic;
+}
+
+.journal .paginas {
+  font-style: italic;
+  font-weight: 700;
+}
+
+.journal .capa {
+  display: block;
+  width: 100%;
+  aspect-ratio: 260 / 369;
+  object-fit: cover;
+  border-radius: 5px 24px 24px 5px;
+  background: #3e1205;
+}
+
+.journal .titulo {
+  display: block;
+  margin-top: 6px;
+  padding: 0 4px;
+  overflow: hidden;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 30px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* modo "editar journals": as capas viram alvos de clique */
+.grade.editando .journal {
+  cursor: pointer;
+}
+
+.grade.editando .journal:hover .capa,
+.journal:focus-visible .capa {
+  outline: 4px solid var(--marrom-escuro);
+  outline-offset: 3px;
+}
+
+.journal:focus-visible {
+  outline: none;
+}
+
+/* ---------- estado vazio ---------- */
+.vazio {
+  margin-top: 118px;
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.vazio p {
+  margin: 0;
+  line-height: 1.3;
+  opacity: 0.7;
+}
+
+.vazio .vazio-2 {
+  margin-top: 40px;
+}
+
+.vazio .acao-mini {
+  display: block;
+  min-width: 155px;
+  height: 56px;
+  margin: 14px auto 0;
+  padding: 0 14px;
+  border-radius: 20px;
+  font-size: 15.6px;
+  opacity: 0.7;
+}
+
+.vazio .acao-mini .estrela {
+  top: -16px;
+  left: -6px;
+  width: 28px;
+  height: 28px;
+}
+
+.sem-resultado {
+  margin: 118px 0 0;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0.7;
+}
+
+/* ---------- overlay e janelas flutuantes ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: var(--overlay);
+}
+
+.janela {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 11;
+  width: min(876px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  border-radius: 0 0 30px 30px;
+  background: var(--janela-corpo);
+  color: var(--janela-texto);
+  transform: translate(-50%, -50%);
+}
+
+.janela-criar {
+  width: min(854px, calc(100vw - 2rem));
+}
+
+.janela .barra {
+  display: flex;
+  height: 63px;
+  background: var(--janela-barra);
+}
+
+.janela .fechar {
+  width: 49px;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: var(--janela-escuro);
+  color: var(--janela-texto);
+  font: 700 32px Arial, Helvetica, sans-serif;
+  cursor: pointer;
+}
+
+.janela .fechar:focus-visible {
+  outline: 3px solid var(--janela-texto);
+  outline-offset: -6px;
+}
+
+.janela .corpo {
+  position: relative;
+  padding: 11px 36px 44px 31px;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.cabecalho .icone {
+  flex: none;
+  width: 58px;
+  height: 58px;
+  color: var(--janela-texto);
+}
+
+.cabecalho h2 {
+  margin: 0;
+  font-size: 29px;
+  font-style: italic;
+  font-weight: 700;
+}
+
+.data-hoje {
+  margin-left: auto;
+  font-size: 37px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* pílulas creme com texto oliva */
+.pilula {
+  width: 100%;
+  height: 55px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--janela-barra);
+  color: var(--janela-escuro);
+  font: italic 700 18.5px var(--fonte);
+  text-align: center;
+  cursor: pointer;
+}
+
+.pilula:focus-visible,
+.pilula-input:focus {
+  outline: 3px solid var(--janela-escuro);
+  outline-offset: 2px;
+}
+
+.pilula:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.pilula-input {
+  cursor: text;
+}
+
+.pilula-input::placeholder {
+  color: var(--janela-escuro);
+  opacity: 1;
+}
+
+.pilula-input[readonly] {
+  cursor: default;
+}
+
+.pilula-input[readonly]:focus {
+  outline: none;
+}
+
+.pilula-ok {
+  width: 66px;
+  padding: 0;
+}
+
+/* criar journal */
+.linha-criar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 37px;
+  padding: 0 5px 0 13px;
+}
+
+.linha-criar .pilula-input {
+  width: 330px;
+  max-width: 100%;
+}
+
+.linha-criar .pilula-ok {
+  flex: none;
+  width: 64px;
+}
+
+/* editar journal */
+.corpo-editar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 338px));
+  grid-template-areas:
+    "cab sel"
+    "b1  sel"
+    "b2  tit"
+    "b3  ok";
+  justify-content: space-between;
+  row-gap: 16px;
+  padding-left: 46px;
+}
+
+.corpo-editar .area-cab {
+  grid-area: cab;
+  margin-left: -15px;
+}
+
+.corpo-editar .area-b1 { grid-area: b1; margin-top: 20px; }
+.corpo-editar .area-b2 { grid-area: b2; }
+.corpo-editar .area-b3 { grid-area: b3; }
+.corpo-editar .area-tit { grid-area: tit; }
+.corpo-editar .area-ok { grid-area: ok; justify-self: end; margin-right: 6px; }
+
+.rotulo-sel {
+  grid-area: sel;
+  align-self: end;
+  margin: 0;
+  font-size: 38px;
+  line-height: 53px;
+  text-align: right;
+}
+
+.pilula-input.editando {
+  box-shadow: inset 0 0 0 3px var(--janela-escuro);
+}
+
+.erro-janela {
+  position: absolute;
+  right: 36px;
+  bottom: 14px;
+  left: 31px;
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 15px;
+  font-style: italic;
+  text-align: center;
+}
+
+.corpo-editar .erro-janela {
+  grid-column: 1 / -1;
+}
+
+/* ---------- telas médias e celular ---------- */
+@media (max-width: 1000px) {
+  .grade {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .acao {
+    min-width: 0;
+    flex: 1 1 0;
+    margin: 0 6px;
+    font-size: 17px;
+  }
+
+  .acoes {
+    margin: 35px -6px 0;
+  }
+
+  .journal .meta {
+    font-size: 15px;
+  }
+
+  .journal .titulo {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 820px) {
+  .topo {
+    grid-template-columns: 1fr;
+    padding-right: 0;
+  }
+
+  .logo {
+    width: 180px;
+    margin: 0 0 24px;
+  }
+
+  .busca {
+    margin-top: 0;
+  }
+
+  .acoes {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 20px 0 0;
+  }
+
+  .acao {
+    flex: 1 1 140px;
+    height: 56px;
+    margin: 0;
+    font-size: 16px;
+  }
+
+  .aviso {
+    position: static;
+    margin-top: 12px;
+  }
+
+  .grade {
+    margin-top: 40px;
+  }
+
+  .vazio {
+    margin-top: 70px;
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 700px) {
+  .pagina {
+    padding-top: 28px;
+  }
+
+  .grade {
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 18px;
+    row-gap: 28px;
+  }
+
+  .journal .meta {
+    padding: 0 4px;
+    font-size: 12.5px;
+  }
+
+  .journal .titulo {
+    font-size: 18px;
+    line-height: 24px;
+  }
+
+  .janela .corpo {
+    padding: 14px 18px 48px;
+  }
+
+  .cabecalho h2 {
+    font-size: 22px;
+  }
+
+  .cabecalho .icone {
+    width: 40px;
+    height: 40px;
+  }
+
+  .data-hoje {
+    font-size: 22px;
+  }
+
+  .linha-criar {
+    flex-wrap: wrap;
+    padding: 0;
+  }
+
+  .linha-criar .pilula-input {
+    flex: 1 1 200px;
+    width: auto;
+  }
+
+  .corpo-editar {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "cab"
+      "sel"
+      "tit"
+      "b1"
+      "b2"
+      "b3"
+      "ok";
+    padding-left: 18px;
+  }
+
+  .corpo-editar .area-cab {
+    margin-left: 0;
+  }
+
+  .corpo-editar .area-b1 {
+    margin-top: 0;
+  }
+
+  .rotulo-sel {
+    align-self: start;
+    font-size: 24px;
+    line-height: 1.3;
+    text-align: left;
+  }
+
+  .erro-janela {
+    right: 18px;
+    left: 18px;
+  }
+}

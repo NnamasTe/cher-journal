@@ -6,63 +6,109 @@
   <meta name="robots" content="noindex, nofollow">
   <title>cher journal</title>
   <link rel="stylesheet" href="/base.css">
-  <style>
-    main { max-width: 480px; margin: 3rem auto; padding: 0 1rem; }
-    input, button { font: inherit; padding: .5rem .7rem; margin: .25rem 0; }
-    .aviso { font-size: .85rem; opacity: .7; }
-    .erro { color: var(--marrom-escuro); font-style: italic; }
-  </style>
+  <link rel="stylesheet" href="/estante.css">
 </head>
 <body>
-  <main>
-    <p class="aviso">Tela provisória da estante, só para testar o banco. O design real entra no próximo passo.</p>
-    <h1>estante</h1>
+  <!-- símbolos reaproveitados nos botões e janelas -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-estrela" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M12 1.6l3 6.9 7.5.7-5.7 4.9 1.7 7.3L12 17.6l-6.5 3.8 1.7-7.3L1.5 9.2l7.5-.7z"/>
+    </symbol>
+    <symbol id="i-brilho" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M12 0c.9 7 5 11.1 12 12-7 .9-11.1 5-12 12-.9-7-5-11.1-12-12C7 11.1 11.1 7 12 0z"/>
+    </symbol>
+    <symbol id="i-lupa" viewBox="0 0 24 24">
+      <circle cx="14.5" cy="9.5" r="6" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <path d="M10.2 13.8L3 21" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+    </symbol>
+  </svg>
 
-    <form id="formJournal">
-      <input id="titulo" placeholder="título do novo journal" maxlength="120" required>
-      <button>criar</button>
+  <div class="pagina">
+    <header class="topo">
+      <img class="logo" src="/logo-escuro.png" alt="cher journal">
+
+      <div class="comandos">
+        <label class="busca">
+          <input id="busca" type="search" placeholder=" " maxlength="120" autocomplete="off"
+                 aria-label="pesquisar journals">
+          <span class="dica" aria-hidden="true">
+            <svg class="lupa"><use href="#i-lupa"/></svg>pesquisar
+          </span>
+        </label>
+
+        <nav class="acoes" aria-label="ações da estante">
+          <button class="acao" id="btnCriar" type="button">
+            <svg class="estrela" aria-hidden="true"><use href="#i-estrela"/></svg>criar journal
+          </button>
+          <button class="acao" id="btnEditar" type="button" aria-pressed="false">editar journals</button>
+          <button class="acao" id="btnOrdenar" type="button">organizar journals</button>
+        </nav>
+
+        <p class="aviso" id="aviso" role="status" aria-live="polite"></p>
+      </div>
+    </header>
+
+    <main>
+      <section class="grade" id="grade" aria-label="seus journals"></section>
+
+      <section class="vazio" id="vazio" hidden>
+        <p>Não há Journals</p>
+        <p class="vazio-2">você pode criar um ao clicar em</p>
+        <button class="acao acao-mini" id="btnCriarVazio" type="button">
+          <svg class="estrela" aria-hidden="true"><use href="#i-estrela"/></svg>criar journal
+        </button>
+      </section>
+
+      <p class="sem-resultado" id="semResultado" hidden>nenhum journal com esse nome.</p>
+    </main>
+  </div>
+
+  <div class="overlay" id="overlay" hidden></div>
+
+  <!-- janela: criar journal -->
+  <section class="janela janela-criar" id="janelaCriar" role="dialog" aria-modal="true"
+           aria-labelledby="tCriar" hidden>
+    <div class="barra"><button class="fechar" type="button" data-fechar aria-label="fechar">X</button></div>
+    <form class="corpo" id="formCriar" autocomplete="off">
+      <div class="cabecalho">
+        <svg class="icone" aria-hidden="true"><use href="#i-estrela"/></svg>
+        <h2 id="tCriar">criar journal</h2>
+        <span class="data-hoje" id="dataHoje"></span>
+      </div>
+      <div class="linha-criar">
+        <input class="pilula pilula-input" id="tituloNovo" type="text" maxlength="120"
+               placeholder="inserir título_" aria-label="título do journal">
+        <button class="pilula pilula-ok" type="submit">ok</button>
+      </div>
+      <p class="erro-janela" id="erroCriar" role="alert"></p>
     </form>
-    <ul id="lista"></ul>
-    <button id="sair">sair</button>
-    <p id="msg" class="erro"></p>
-  </main>
+  </section>
 
-  <script>
-    const $ = (id) => document.getElementById(id);
+  <!-- janela: editar journal -->
+  <section class="janela janela-editar" id="janelaEditar" role="dialog" aria-modal="true"
+           aria-labelledby="tEditar" hidden>
+    <div class="barra"><button class="fechar" type="button" data-fechar aria-label="fechar">X</button></div>
+    <form class="corpo corpo-editar" id="formEditar" autocomplete="off">
+      <div class="cabecalho area-cab">
+        <svg class="icone" aria-hidden="true"><use href="#i-brilho"/></svg>
+        <h2 id="tEditar">editar journal</h2>
+      </div>
 
-    async function api(caminho, opcoes = {}) {
-      const r = await fetch(caminho, { headers: { 'Content-Type': 'application/json' }, ...opcoes });
-      if (r.status === 401) { window.location.replace('/'); throw new Error('sessão encerrada'); }
-      const corpo = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(corpo.erro || 'Algo deu errado.');
-      return corpo;
-    }
+      <p class="rotulo-sel area-sel">journal<br>selecionado:</p>
 
-    async function carregar() {
-      const journals = await api('/api/journals');
-      $('lista').innerHTML = '';
-      for (const j of journals) {
-        const li = document.createElement('li');
-        li.textContent = `${j.titulo} (${j.qttd_Paginas} páginas)`;
-        $('lista').appendChild(li);
-      }
-    }
+      <button class="pilula area-b1" id="btnCapa" type="button">upload de capa</button>
+      <button class="pilula area-b2" id="btnTitulo" type="button">mudar título</button>
+      <button class="pilula area-b3" id="btnApagar" type="button">apagar journal</button>
 
-    $('formJournal').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      try {
-        await api('/api/journals', { method: 'POST', body: JSON.stringify({ titulo: $('titulo').value }) });
-        $('titulo').value = '';
-        await carregar();
-      } catch (err) { $('msg').textContent = err.message; }
-    });
+      <input class="pilula pilula-input area-tit" id="tituloSel" type="text" maxlength="120"
+             readonly aria-label="título do journal selecionado">
+      <button class="pilula pilula-ok area-ok" type="submit">ok</button>
 
-    $('sair').addEventListener('click', async () => {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      window.location.replace('/');
-    });
+      <input type="file" id="arquivoCapa" accept="image/jpeg,image/png,image/webp" hidden>
+      <p class="erro-janela" id="erroEditar" role="alert"></p>
+    </form>
+  </section>
 
-    carregar().catch((err) => { $('msg').textContent = err.message; });
-  </script>
+  <script src="/estante.js"></script>
 </body>
 </html>
