@@ -6,6 +6,10 @@ const uploadsRouter = require('./routes/uploads');
 
 const app = express();
 
+const path = require('path');
+
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
 app.disable('x-powered-by');
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
