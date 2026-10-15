@@ -6,11 +6,10 @@ const emProducao = Boolean(process.env.VERCEL) || process.env.NODE_ENV === 'prod
 
 function opcoesCookie() {
   return {
-    httpOnly: true, // o JavaScript do navegador não consegue ler o cookie
+    httpOnly: true,
     sameSite: 'strict',
-    secure: emProducao, // só por HTTPS quando estiver online
+    secure: emProducao, 
     path: '/',
-    // Sem maxAge/expires: é um cookie de sessão e some quando o navegador fecha.
   };
 }
 
@@ -31,8 +30,6 @@ async function login(req, res) {
     return res.status(401).json({ erro: 'Senha incorreta.' });
   }
 
-  // O "7d" é só uma trava de segurança extra dentro do token;
-  // na prática a sessão acaba quando o navegador é fechado.
   const token = jwt.sign({ acesso: true }, segredo, { expiresIn: '7d' });
   res.cookie(COOKIE, token, opcoesCookie());
   return res.json({ ok: true });
@@ -55,7 +52,6 @@ function estaAutenticado(req) {
   }
 }
 
-// Barreira: toda rota da API que devolve ou altera conteúdo passa por aqui.
 function exigirSenhaDoSite(req, res, next) {
   if (!estaAutenticado(req)) {
     return res.status(401).json({ erro: 'Acesso negado. Entre com a senha do site.' });
