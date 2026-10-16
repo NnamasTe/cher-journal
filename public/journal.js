@@ -833,8 +833,6 @@
   $('btnTipos').addEventListener('click', abrirPapeis);
   $('btnOkPapeis').addEventListener('click', fecharPapeis);
 
-  // ---------- adesivos ----------
-
   const camadaAd = $('adCamada');
   const selAd = $('adSel');
   const barAd = $('adBar');
@@ -847,7 +845,8 @@
   const LADO_MIN = 24;
   const LADO_MAX = 1000;
   const LADO_INICIAL = 220;
-  
+  const OPACIDADE_PADRAO = 100;
+
   const PAPEL_AD = {
     padrao: {
       recorte: [[226, 33], [1138, 33], [1138, 735], [226, 735]],
@@ -919,6 +918,11 @@
       h: arred(limitar(num(a.h, LADO_INICIAL), LADO_MIN, LADO_MAX)),
       rot: arred(normalizarGraus(num(a.rot, 0))),
       espelho: !!a.espelho,
+      opacidade: Math.round(limitar(
+        a.opacidade === null || a.opacidade === '' ? OPACIDADE_PADRAO : num(a.opacidade, OPACIDADE_PADRAO),
+        0,
+        100,
+      )),
     };
   }
 
@@ -1145,6 +1149,7 @@
     el.style.height = `${s.h}px`;
     el.style.transform = `rotate(${s.rot}deg)`;
     el.firstChild.style.transform = s.espelho ? 'scaleX(-1)' : '';
+    el.style.opacity = String(s.opacidade / 100);
   }
 
   function desenharAdesivos() {
@@ -1175,6 +1180,14 @@
     if (el) estiloAd(s, el);
   }
 
+  const sliderOpac = $('adOpacidade');
+  const valorOpac = $('adOpacidadeValor');
+
+  function mostrarOpacidade(valor) {
+    sliderOpac.value = String(valor);
+    valorOpac.textContent = `${valor}%`;
+  }
+
   function atualizarSel() {
     const achado = editandoAd && !apagandoAd ? achar(selecionadoAd) : null;
     if (!achado) {
@@ -1183,6 +1196,7 @@
       return;
     }
     const s = achado.s;
+    mostrarOpacidade(s.opacidade);
     selAd.style.left = `${s.x - s.w / 2}px`;
     selAd.style.top = `${s.y - s.h / 2}px`;
     selAd.style.width = `${s.w}px`;
@@ -1358,7 +1372,6 @@
     }
   }
 
-  // devolve false se não houver onde pôr o adesivo sem o texto passar do fim da folha
   function inserirAdesivo(src, largura, altura, indice) {
     const folha = folhas[indice];
     if (!folha) return false;
@@ -1671,9 +1684,25 @@
     desenharAdesivos();
   }
 
-  barAd.addEventListener('pointerdown', (e) => e.preventDefault());
+  barAd.addEventListener('pointerdown', (e) => {
+    if (e.target !== sliderOpac) e.preventDefault();
+  });
   barAd.querySelectorAll('[data-acao]').forEach((b) =>
     b.addEventListener('click', () => acaoAdesivo(b.dataset.acao)));
+
+  let opacidadeAntes = null;
+  sliderOpac.addEventListener('input', () => {
+    const achado = achar(selecionadoAd);
+    if (!achado) return;
+    if (opacidadeAntes === null) opacidadeAntes = fotoAd();
+    achado.s.opacidade = Math.round(limitar(Number(sliderOpac.value), 0, 100));
+    valorOpac.textContent = `${achado.s.opacidade}%`;
+    atualizarEl(achado.s);
+  });
+  sliderOpac.addEventListener('change', () => {
+    if (opacidadeAntes !== null && fotoAd() !== opacidadeAntes) guardarAd(opacidadeAntes);
+    opacidadeAntes = null;
+  });
 
   let rolagemAntes = null;
   let temporizadorRolagem = null;
@@ -1719,6 +1748,7 @@
     if (arquivos.length) adicionarArquivos(arquivos);
   });
 
+  // sem escolher arquivo: permite ajustar os adesivos já colocados
   arqAd.addEventListener('cancel', () => {
     if (!editandoAd && temAdesivosVisiveis()) entrarEdicaoAd();
   });
@@ -1773,6 +1803,7 @@
     }
     const achado = achar(selecionadoAd);
     if (!achado || apagandoAd) return;
+    if (e.target === sliderOpac && e.key.startsWith('Arrow')) return;
     if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
       removerAd(achado.s.id);

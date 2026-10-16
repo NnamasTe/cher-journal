@@ -120,10 +120,18 @@
           <button class="adsel-alca adsel-sw" type="button" data-gesto="tamanho" data-sx="-1" data-sy="1" aria-label="redimensionar adesivo"></button>
         </div>
         <div class="adbar" id="adBar" role="toolbar" aria-label="ajustes do adesivo" hidden>
-          <button type="button" data-acao="espelhar">espelhar</button>
-          <button type="button" data-acao="duplicar">duplicar</button>
-          <button type="button" data-acao="frente">p/ frente</button>
-          <button type="button" data-acao="tras">p/ trás</button>
+          <div class="adbar-acoes">
+            <button type="button" data-acao="espelhar">espelhar</button>
+            <button type="button" data-acao="duplicar">duplicar</button>
+            <button type="button" data-acao="frente">p/ frente</button>
+            <button type="button" data-acao="tras">p/ trás</button>
+          </div>
+          <label class="adbar-opac">
+            <span>opacidade</span>
+            <input type="range" id="adOpacidade" min="0" max="100" step="1" value="100"
+                   aria-label="opacidade do adesivo">
+            <output id="adOpacidadeValor" for="adOpacidade">100%</output>
+          </label>
         </div>
         <div class="adrec" id="adRecentes" role="group" aria-label="adesivos recentes" hidden></div>
         <button class="adesivos-ok" id="btnOkAdesivos" type="button" aria-label="ok" hidden>ok</button>
