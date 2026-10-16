@@ -1,5 +1,3 @@
-// Gera o hash bcrypt da senha do site.
-// Uso:  npm run hash-senha
 const readline = require('readline');
 const bcrypt = require('bcryptjs');
 

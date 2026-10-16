@@ -35,7 +35,6 @@
     const botao = document.getElementById('botao');
     const mensagem = document.getElementById('mensagem');
 
-    // Se já está logado nesta sessão, vai direto para a estante.
     fetch('/api/auth/status')
       .then((r) => r.json())
       .then((d) => { if (d.autenticado) window.location.replace('/estante.html'); })

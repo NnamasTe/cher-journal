@@ -14,8 +14,8 @@
     journals: [],
     ordem: 'recentes',
     busca: '',
-    editando: false, // modo "editar journals"
-    selecionado: null, // journal aberto na janela de edição
+    editando: false,
+    selecionado: null, 
     carregado: false,
     ocupado: false,
   };
@@ -323,18 +323,18 @@
     }
   });
 
-  // Usa a imagem inteira como capa: sem recortar e sem forçar a proporção do caderno.
-  // Só reduz o tamanho (para o envio ser leve) mantendo a proporção original.
+  const CAPA_LARGURA = 520;
+  const CAPA_ALTURA = Math.round(CAPA_LARGURA * 369 / 260);
+
   async function prepararCapa(arquivo) {
     const imagem = await createImageBitmap(arquivo, { imageOrientation: 'from-image' });
-    const MAX = 900;
-    const escala = Math.min(1, MAX / Math.max(imagem.width, imagem.height));
     const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(imagem.width * escala));
-    canvas.height = Math.max(1, Math.round(imagem.height * escala));
+    canvas.width = CAPA_LARGURA;
+    canvas.height = CAPA_ALTURA;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff'; // PNG transparente não vira preto no JPEG
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(imagem, 0, 0, canvas.width, canvas.height);
     imagem.close();
     return new Promise((resolve, reject) => {

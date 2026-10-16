@@ -11,12 +11,8 @@ const ORDENS = {
   titulo: { titulo: 'asc' },
 };
 
-// Garante que erros de funções async cheguem ao tratador de erros.
 const rota = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-// ---------- JOURNALS ----------
-
-// Lista a estante. Ordem: ?ordem=recentes (padrão) | antigos | titulo
 router.get('/journals', rota(async (req, res) => {
   const orderBy = ORDENS[req.query.ordem] || ORDENS.recentes;
   const journals = await prisma.journal.findMany({ orderBy });
@@ -52,7 +48,6 @@ router.patch('/journals/:id', rota(async (req, res) => {
     data.titulo = titulo;
   }
   if (req.body.capa !== undefined) {
-    // capa: null volta para a imagem padrão
     const capa = req.body.capa === null ? CAPA_PADRAO : urlOuCaminho(req.body.capa);
     if (!capa) return res.status(400).json({ erro: 'Capa inválida.' });
     data.capa = capa;
@@ -65,13 +60,11 @@ router.patch('/journals/:id', rota(async (req, res) => {
   res.json(journal);
 }));
 
-// Excluir o journal exclui também todas as páginas dele.
 router.delete('/journals/:id', rota(async (req, res) => {
   await prisma.journal.delete({ where: { id: req.params.id } });
   res.json({ ok: true });
 }));
 
-// ---------- PÁGINAS ----------
 
 router.get('/journals/:id/paginas', rota(async (req, res) => {
   const journal = await prisma.journal.findUnique({ where: { id: req.params.id } });
@@ -84,8 +77,6 @@ router.get('/journals/:id/paginas', rota(async (req, res) => {
   res.json(paginas);
 }));
 
-// Valida os campos de uma página. Em criação (parcial = false) tudo é opcional e
-// recebe valor padrão; na edição (parcial = true) só entra o que foi enviado.
 function lerCamposDaPagina(body, parcial) {
   const data = {};
 
@@ -115,7 +106,6 @@ function lerCamposDaPagina(body, parcial) {
   return { data };
 }
 
-// "Salvar página": cria a página e soma 1 no contador do journal, tudo junto.
 router.post('/journals/:id/paginas', rota(async (req, res) => {
   const { data, erro } = lerCamposDaPagina(req.body, false);
   if (erro) return res.status(400).json({ erro });
@@ -136,7 +126,6 @@ router.get('/paginas/:id', rota(async (req, res) => {
   res.json(pagina);
 }));
 
-// "Salvar página" numa página que já existe. A data de criação não muda.
 router.patch('/paginas/:id', rota(async (req, res) => {
   const { data, erro } = lerCamposDaPagina(req.body, true);
   if (erro) return res.status(400).json({ erro });

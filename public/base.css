@@ -1,4 +1,3 @@
-/* Cores e fontes do design, compartilhadas por todas as telas. */
 :root {
   --fundo: #e8d1a7;
   --marrom: #b58f6a;
@@ -6,14 +5,11 @@
   --estrela: #643420;
   --fonte: "Courier New", Courier, monospace;
 
-  /* janelas flutuantes (verde-oliva) */
   --janela-barra: #d1c39a;
   --janela-corpo: #9d9268;
   --janela-escuro: #817546;
   --janela-texto: #d4c69d;
 
-  /* camada marrom que escurece a tela quando uma janela está aberta.
-     Cor e transparência medidas direto do design. */
   --overlay: rgba(100, 52, 32, 0.66);
 }
 

@@ -1,5 +1,3 @@
-// Validações simples, sem biblioteca extra.
-
 function textoObrigatorio(valor, max) {
   if (typeof valor !== 'string') return null;
   const t = valor.trim();
@@ -7,7 +5,6 @@ function textoObrigatorio(valor, max) {
   return t;
 }
 
-// Aceita endereço https (ex.: Vercel Blob) ou um caminho do próprio site (ex.: /capa-padrao.png).
 function urlOuCaminho(valor) {
   if (typeof valor !== 'string' || valor.length === 0 || valor.length > 500) return null;
   if (valor.startsWith('https://')) return valor;

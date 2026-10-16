@@ -8,7 +8,6 @@
   padding: 2rem;
 }
 
-/* ---- logo (esquerda) ---- */
 .logo {
   justify-self: start;
   padding-left: 4vw;
@@ -20,7 +19,6 @@
   height: auto;
 }
 
-/* ---- formulário (direita) ---- */
 .entrada {
   justify-self: center;
   position: relative;
@@ -40,7 +38,6 @@
   text-align: center;
 }
 
-/* caixa da senha: a frase da tela fica por cima e some quando começa a digitar */
 .caixa-senha {
   position: relative;
   min-height: 85px;
@@ -109,7 +106,6 @@
 }
 
 .mensagem {
-  /* fora do fluxo: não desloca o resto da tela quando aparece */
   position: absolute;
   top: calc(100% + 0.75rem);
   left: 0;
@@ -120,7 +116,6 @@
   text-align: center;
 }
 
-/* ---- celular: logo em cima, formulário embaixo ---- */
 @media (max-width: 800px) {
   .tela-entrada {
     grid-template-columns: 1fr;

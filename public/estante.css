@@ -1,12 +1,9 @@
-/* ===== estante: medidas tiradas do design (tela de 1366px) ===== */
-
 .pagina {
   width: min(1140px, 100% - 2rem);
   margin: 0 auto;
   padding: 49px 0 100px;
 }
 
-/* ---------- topo ---------- */
 .topo {
   display: grid;
   grid-template-columns: 321px 1fr;
@@ -25,7 +22,6 @@
   position: relative;
 }
 
-/* barra de pesquisa */
 .busca {
   position: relative;
   display: block;
@@ -80,7 +76,6 @@
   display: none;
 }
 
-/* três botões de ação */
 .acoes {
   display: flex;
   justify-content: space-between;
@@ -123,7 +118,6 @@
   pointer-events: none;
 }
 
-/* aviso curto sob os botões: não empurra o resto da tela */
 .aviso {
   position: absolute;
   top: calc(100% + 12px);
@@ -135,7 +129,6 @@
   text-align: center;
 }
 
-/* ---------- grade de journals ---------- */
 .grade {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -181,7 +174,8 @@
 .journal .capa {
   display: block;
   width: 100%;
-  height: auto; /* a capa mostra a imagem inteira, na proporção dela */
+  aspect-ratio: 260 / 369;
+  object-fit: fill; 
   border-radius: 5px 24px 24px 5px;
   background: #3e1205;
 }
@@ -199,7 +193,6 @@
   white-space: nowrap;
 }
 
-/* modo "editar journals": as capas viram alvos de clique */
 .grade.editando .journal {
   cursor: pointer;
 }
@@ -214,7 +207,6 @@
   outline: none;
 }
 
-/* ---------- estado vazio ---------- */
 .vazio {
   margin-top: 118px;
   font-size: 26px;
@@ -258,7 +250,6 @@
   opacity: 0.7;
 }
 
-/* ---------- overlay e janelas flutuantes ---------- */
 .overlay {
   position: fixed;
   inset: 0;
@@ -338,7 +329,6 @@
   letter-spacing: 0.02em;
 }
 
-/* pílulas creme com texto oliva */
 .pilula {
   width: 100%;
   height: 55px;
@@ -385,7 +375,6 @@
   padding: 0;
 }
 
-/* criar journal */
 .linha-criar {
   display: flex;
   align-items: center;
@@ -405,7 +394,6 @@
   width: 64px;
 }
 
-/* editar journal */
 .corpo-editar {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 338px));
@@ -459,7 +447,6 @@
   grid-column: 1 / -1;
 }
 
-/* ---------- telas médias e celular ---------- */
 @media (max-width: 1000px) {
   .grade {
     grid-template-columns: repeat(3, 1fr);
