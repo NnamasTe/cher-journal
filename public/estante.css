@@ -141,6 +141,7 @@
   grid-template-columns: repeat(4, 1fr);
   column-gap: 33px;
   row-gap: 40px;
+  align-items: start;
   margin-top: 69px;
   padding: 0 3px;
 }
@@ -180,8 +181,7 @@
 .journal .capa {
   display: block;
   width: 100%;
-  aspect-ratio: 260 / 369;
-  object-fit: cover;
+  height: auto; /* a capa mostra a imagem inteira, na proporção dela */
   border-radius: 5px 24px 24px 5px;
   background: #3e1205;
 }

@@ -9,7 +9,6 @@
     antigos: 'mais antigos primeiro',
     titulo: 'ordem alfabética',
   };
-  const PROPORCAO_CAPA = 260 / 369;
 
   const estado = {
     journals: [],
@@ -324,28 +323,23 @@
     }
   });
 
+  // Usa a imagem inteira como capa: sem recortar e sem forçar a proporção do caderno.
+  // Só reduz o tamanho (para o envio ser leve) mantendo a proporção original.
   async function prepararCapa(arquivo) {
     const imagem = await createImageBitmap(arquivo, { imageOrientation: 'from-image' });
-    let { width: l, height: a } = imagem;
-    let sx = 0;
-    let sy = 0;
-    if (l / a > PROPORCAO_CAPA) {
-      const nova = Math.round(a * PROPORCAO_CAPA);
-      sx = Math.round((l - nova) / 2);
-      l = nova;
-    } else {
-      const nova = Math.round(l / PROPORCAO_CAPA);
-      sy = Math.round((a - nova) / 2);
-      a = nova;
-    }
+    const MAX = 900;
+    const escala = Math.min(1, MAX / Math.max(imagem.width, imagem.height));
     const canvas = document.createElement('canvas');
-    canvas.width = 520;
-    canvas.height = Math.round(520 / PROPORCAO_CAPA);
-    canvas.getContext('2d').drawImage(imagem, sx, sy, l, a, 0, 0, canvas.width, canvas.height);
+    canvas.width = Math.max(1, Math.round(imagem.width * escala));
+    canvas.height = Math.max(1, Math.round(imagem.height * escala));
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff'; // PNG transparente não vira preto no JPEG
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imagem, 0, 0, canvas.width, canvas.height);
     imagem.close();
     return new Promise((resolve, reject) => {
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('falha ao preparar a imagem'))),
-        'image/jpeg', 0.88);
+        'image/jpeg', 0.9);
     });
   }
 
