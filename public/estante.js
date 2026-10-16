@@ -116,6 +116,7 @@
     item.append(meta, capa, titulo);
     item.addEventListener('click', () => {
       if (estado.editando) abrirEditar(journal);
+      else window.location.href = `/journal.html?id=${encodeURIComponent(journal.id)}`;
     });
     return item;
   }

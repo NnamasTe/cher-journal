@@ -148,7 +148,7 @@
   color: inherit;
   font: inherit;
   text-align: inherit;
-  cursor: default;
+  cursor: pointer;
 }
 
 .journal .meta {

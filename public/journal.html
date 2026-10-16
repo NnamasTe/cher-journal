@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>cher journal</title>
+  <link rel="icon" type="image/png" sizes="40x40" href="/favicon.png">
+  <link rel="stylesheet" href="/base.css">
+  <link rel="stylesheet" href="/journal.css">
+</head>
+<body class="tela-journal">
+
+  <div class="cena" id="cena">
+    <div class="palco" id="palco">
+
+      <img class="cena-img" src="/journal-cena.png" width="1366" height="768" alt="" draggable="false">
+
+      <main class="folhas" id="folhas" aria-label="páginas do journal">
+        <span class="numero numero-esq" id="numEsq">1</span>
+        <span class="numero numero-dir" id="numDir">2</span>
+        <span class="data-folha" id="dataFolha"></span>
+      </main>
+
+      <button class="item seta seta-esq" id="btnVoltar" type="button" aria-label="voltar folha"></button>
+      <button class="item seta seta-dir" id="btnAvancar" type="button" aria-label="avançar folha"></button>
+
+      <button class="item" id="btnEstante" type="button" aria-label="estante"
+              style="left:9px;top:7px;width:100px;height:30px"></button>
+      <button class="item" id="btnSalvar" type="button" aria-label="salvar"
+              style="left:117px;top:7px;width:88px;height:30px"></button>
+
+      <button class="item" id="btnEscrever" type="button" aria-label="escrever"
+              style="left:0px;top:98px;width:206px;height:80px"></button>
+      <button class="item" id="btnCores" type="button" aria-label="cores"
+              style="left:0px;top:196px;width:92px;height:330px"></button>
+      <button class="item" id="btnTipos" type="button" aria-label="tipos de folha"
+              style="left:0px;top:700px;width:150px;height:68px"></button>
+
+      <button class="item" id="btnAdesivos" type="button" aria-label="adesivos"
+              style="left:1166px;top:31px;width:200px;height:80px"></button>
+      <button class="item" id="btnApagar" type="button" aria-label="apagar adesivo"
+              style="left:1226px;top:150px;width:140px;height:100px"></button>
+      <button class="item" id="btnAnotacoes" type="button" aria-label="anotações"
+              style="left:1121px;top:439px;width:245px;height:328px;clip-path:polygon(76px 0px, 245px 45px, 245px 328px, 69px 328px, 0px 311px)"></button>
+
+    </div>
+  </div>
+
+  <script src="/journal.js"></script>
+</body>
+</html>

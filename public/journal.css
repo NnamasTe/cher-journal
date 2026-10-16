@@ -1,0 +1,93 @@
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.tela-journal {
+  --s: 1;
+  --cinza-num: #bababa;
+}
+
+.cena {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #e8d1a7; 
+}
+
+.palco {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1366px;
+  height: 768px;
+  transform: translate(-50%, -50%) scale(var(--s));
+  transform-origin: center center;
+}
+
+.cena-img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 1366px;
+  height: 768px;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.folhas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.numero,
+.data-folha {
+  position: absolute;
+  font-family: "Courier New", Courier, "Liberation Mono", Cousine, monospace;
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: right;
+  color: var(--cinza-num);
+  user-select: none;
+}
+
+.numero-esq { right: calc(1366px - 657px); top: 62px; }
+.numero-dir { right: calc(1366px - 1110px); top: 62px; }
+.data-folha { right: calc(1366px - 656px); top: 700px; }
+
+.item {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+}
+
+.seta {
+  top: 387px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+}
+
+.seta-esq { left: 190px; }
+.seta-dir { left: 1120px; }
+
+.item:focus {
+  outline: none;
+}
+
+.item:focus-visible {
+  outline: 3px solid rgba(74, 42, 26, 0.85);
+  outline-offset: -4px;
+}

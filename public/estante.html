@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="/estante.css">
 </head>
 <body>
-  <!-- símbolos reaproveitados nos botões e janelas -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
     <symbol id="i-estrela" viewBox="0 0 24 24">
       <path fill="currentColor" d="M12 1.6l3 6.9 7.5.7-5.7 4.9 1.7 7.3L12 17.6l-6.5 3.8 1.7-7.3L1.5 9.2l7.5-.7z"/>
@@ -53,7 +52,7 @@
       <section class="grade" id="grade" aria-label="seus journals"></section>
 
       <section class="vazio" id="vazio" hidden>
-        <p>Não há Journals</p>
+        <p>não há journals</p>
         <p class="vazio-2">você pode criar um ao clicar em</p>
         <button class="acao acao-mini" id="btnCriarVazio" type="button">
           <svg class="estrela" aria-hidden="true"><use href="#i-estrela"/></svg>criar journal
@@ -66,7 +65,6 @@
 
   <div class="overlay" id="overlay" hidden></div>
 
-  <!-- janela: criar journal -->
   <section class="janela janela-criar" id="janelaCriar" role="dialog" aria-modal="true"
            aria-labelledby="tCriar" hidden>
     <div class="barra"><button class="fechar" type="button" data-fechar aria-label="fechar">X</button></div>
@@ -85,7 +83,6 @@
     </form>
   </section>
 
-  <!-- janela: editar journal -->
   <section class="janela janela-editar" id="janelaEditar" role="dialog" aria-modal="true"
            aria-labelledby="tEditar" hidden>
     <div class="barra"><button class="fechar" type="button" data-fechar aria-label="fechar">X</button></div>
