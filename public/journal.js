@@ -60,5 +60,80 @@
     }
   }
 
+  const chaveAnotacoes = `cher-journal:anotacoes:${journalId}`;
+  const LIMITE_ANOTACOES = 445;
+
+  const anotTexto = $('anotTexto');
+  const anotAviso = $('anotAviso');
+  let temporizadorAviso = null;
+
+  function lerAnotacoes() {
+    try {
+      return (localStorage.getItem(chaveAnotacoes) || '').slice(0, LIMITE_ANOTACOES);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function salvarAnotacoes() {
+    try {
+      localStorage.setItem(chaveAnotacoes, anotTexto.value);
+    } catch (_) {
+    }
+  }
+
+  function mostrarAviso(texto) {
+    anotAviso.textContent = texto;
+    anotAviso.hidden = false;
+    clearTimeout(temporizadorAviso);
+    temporizadorAviso = setTimeout(() => {
+      anotAviso.hidden = true;
+    }, 2000);
+  }
+
+  function abrirAnotacoes() {
+    anotTexto.value = lerAnotacoes();
+    anotAviso.hidden = true;
+    $('anotFundo').hidden = false;
+    $('palcoAnot').hidden = false;
+    $('palco').inert = true;
+    anotTexto.focus();
+  }
+
+  function fecharAnotacoes() {
+    salvarAnotacoes();
+    clearTimeout(temporizadorAviso);
+    anotAviso.hidden = true;
+    $('palcoAnot').hidden = true;
+    $('anotFundo').hidden = true;
+    $('palco').inert = false;
+    $('btnAnotacoes').focus();
+  }
+
+  async function copiarAnotacoes() {
+    const texto = anotTexto.value;
+    if (!texto) {
+      mostrarAviso('não há nada para copiar.');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(texto);
+    } catch (_) {
+      anotTexto.select();
+      if (!document.execCommand('copy')) {
+        mostrarAviso('não foi possível copiar.');
+        return;
+      }
+      anotTexto.setSelectionRange(texto.length, texto.length);
+    }
+    mostrarAviso('copiado com sucesso!');
+    anotTexto.focus();
+  }
+
+  anotTexto.addEventListener('input', salvarAnotacoes);
+  $('btnAnotacoes').addEventListener('click', abrirAnotacoes);
+  $('btnCopiar').addEventListener('click', copiarAnotacoes);
+  $('btnOk').addEventListener('click', fecharAnotacoes);
+
   carregar();
 })();

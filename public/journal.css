@@ -6,14 +6,14 @@ body {
 
 .tela-journal {
   --s: 1;
-  --cinza-num: #bababa;
+  --cinza-num: #bababa; 
 }
 
 .cena {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: #e8d1a7; 
+  background: #e8d1a7;
 }
 
 .palco {
@@ -36,6 +36,7 @@ body {
   -webkit-user-drag: none;
   pointer-events: none;
 }
+
 
 .folhas {
   position: absolute;
@@ -90,4 +91,120 @@ body {
 .item:focus-visible {
   outline: 3px solid rgba(74, 42, 26, 0.85);
   outline-offset: -4px;
+}
+
+.anot-fundo {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgba(132, 87, 45, 0.5);
+}
+
+.palco-anot {
+  z-index: 11;
+  pointer-events: none;
+}
+
+.anot-fundo[hidden],
+.palco-anot[hidden] {
+  display: none;
+}
+
+.anot {
+  position: absolute;
+  left: 337px;
+  top: 53px;
+  width: 722px;
+  height: 665px;
+  pointer-events: auto;
+}
+
+.anot-img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 722px;
+  height: 665px;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.anot-texto {
+  position: absolute;
+  left: 166px;
+  top: 78px;
+  width: 402px;
+  height: 518px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: #333;
+  font-family: "Gaegu", "Patrick Hand", "Comic Sans MS", "Comic Neue", cursive;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 37px;
+  text-align: justify;
+  overflow-wrap: anywhere;
+  caret-color: #333;
+}
+
+.anot-texto::placeholder {
+  color: #a8a8a8;
+  opacity: 1;
+  text-align: left;
+}
+
+.anot-btn {
+  position: absolute;
+  top: 601px;
+  width: 130px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+}
+
+.anot-copiar { left: 147px; }
+.anot-ok { left: 438px; }
+
+.anot-btn:focus {
+  outline: none;
+}
+
+.anot-btn:focus-visible {
+  outline: 3px solid rgba(74, 42, 26, 0.85);
+  outline-offset: -4px;
+}
+
+.anot-aviso {
+  position: absolute;
+  left: 50%;
+  top: 548px;
+  transform: translateX(-50%);
+  padding: 6px 18px;
+  border-radius: 18px;
+  background: #9d9268;
+  color: #f3ecd2;
+  font-family: "Courier New", Courier, "Liberation Mono", Cousine, monospace;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.anot-aviso[hidden] {
+  display: none;
 }

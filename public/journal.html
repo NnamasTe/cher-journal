@@ -7,6 +7,9 @@
   <title>cher journal</title>
   <link rel="icon" type="image/png" sizes="40x40" href="/favicon.png">
   <link rel="stylesheet" href="/base.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&display=swap">
   <link rel="stylesheet" href="/journal.css">
 </head>
 <body class="tela-journal">
@@ -44,6 +47,18 @@
       <button class="item" id="btnAnotacoes" type="button" aria-label="anotações"
               style="left:1121px;top:439px;width:245px;height:328px;clip-path:polygon(76px 0px, 245px 45px, 245px 328px, 69px 328px, 0px 311px)"></button>
 
+    </div>
+
+    <div class="anot-fundo" id="anotFundo" hidden></div>
+    <div class="palco palco-anot" id="palcoAnot" hidden>
+      <section class="anot" id="anot" role="dialog" aria-modal="true" aria-label="anotações">
+        <img class="anot-img" src="/journal-anotacoes.png" width="722" height="665" alt="" draggable="false">
+        <textarea class="anot-texto" id="anotTexto" maxlength="445" spellcheck="false"
+                  placeholder="escreva aqui..." aria-label="anotações do journal"></textarea>
+        <span class="anot-aviso" id="anotAviso" role="status" aria-live="polite" hidden>copiado com sucesso!</span>
+        <button class="anot-btn anot-copiar" id="btnCopiar" type="button" aria-label="copiar"></button>
+        <button class="anot-btn anot-ok" id="btnOk" type="button" aria-label="ok"></button>
+      </section>
     </div>
   </div>
 
