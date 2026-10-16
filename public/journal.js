@@ -80,10 +80,13 @@
     }, ms);
   }
 
+
   const MARCA = '<!--cj1-->';
   const LINHA = 34;
   const CLASSE_FONT = { 1: 's-texto', 2: 's-texto', 3: 's-texto', 4: 's-sub', 5: 's-titulo', 6: 's-titulo', 7: 's-titulo' };
   const CLASSES = ['s-titulo', 's-sub', 's-texto'];
+  const CORES = ['azul', 'rosa', 'amarelo', 'laranja', 'marrom', 'verde', 'preto'];
+  const CLASSES_COR = CORES.map((c) => `c-${c}`);
 
   function percorrer(origem, destino) {
     for (const no of Array.from(origem.childNodes)) {
@@ -101,15 +104,17 @@
       if (tag === 'b' || tag === 'strong') alvo = document.createElement('b');
       else if (tag === 'i' || tag === 'em') alvo = document.createElement('i');
       else if (tag === 'u') alvo = document.createElement('u');
-      else if (tag === 'span' && CLASSES.some((c) => no.classList.contains(c))) {
+      else if (tag === 'span' && [...CLASSES, ...CLASSES_COR].some((c) => no.classList.contains(c))) {
+        const classes = [...CLASSES, ...CLASSES_COR].filter((c) => no.classList.contains(c));
         alvo = document.createElement('span');
-        alvo.className = CLASSES.find((c) => no.classList.contains(c));
+        alvo.className = classes.join(' ');
       } else if (tag === 'font' && CLASSE_FONT[no.getAttribute('size')]) {
         alvo = document.createElement('span');
         alvo.className = CLASSE_FONT[no.getAttribute('size')];
       }
       if (alvo !== destino) destino.appendChild(alvo);
       percorrer(no, alvo);
+      if (alvo !== destino && !alvo.firstChild) alvo.remove();
       if (tag === 'div' || tag === 'p') destino.appendChild(document.createTextNode('\n'));
     }
   }
@@ -321,7 +326,7 @@
     const alvo = Math.min(maxLinha, Math.floor((e.clientY - caixa.top) / escala / LINHA));
     const fim = linhaDoFim(ed);
     const quebra = terminaEmQuebra(ed);
-    if (alvo < fim || (alvo === fim && !quebra)) return; // clique normal
+    if (alvo < fim || (alvo === fim && !quebra)) return;
     if (alvo === 0 && !ed.firstChild) return;
 
     e.preventDefault();
@@ -535,7 +540,7 @@
     anotTexto.focus();
   }
 
-  anotTexto.addEventListener('input', salvarAnotacoes); // salva automaticamente
+  anotTexto.addEventListener('input', salvarAnotacoes);
   $('btnAnotacoes').addEventListener('click', abrirAnotacoes);
   $('btnCopiar').addEventListener('click', copiarAnotacoes);
   $('btnOk').addEventListener('click', fecharAnotacoes);
@@ -590,13 +595,138 @@
 
   const TAMANHOS = { titulo: '5', subtitulo: '4', texto: '3' };
 
-  painel.addEventListener('mousedown', (e) => e.preventDefault()); // mantém o trecho selecionado
+  painel.addEventListener('mousedown', (e) => e.preventDefault());
   painel.querySelectorAll('[data-tamanho]').forEach((b) =>
     b.addEventListener('click', () => aplicarFormato('fontSize', TAMANHOS[b.dataset.tamanho])));
   painel.querySelectorAll('[data-tipo]').forEach((b) =>
     b.addEventListener('click', () => aplicarFormato(b.dataset.tipo)));
   $('btnEscrever').addEventListener('click', abrirEscrever);
   $('btnOkEscrever').addEventListener('click', fecharEscrever);
+
+  const gizes = $('gizes');
+  const estrela = $('estrela');
+  let corAtual = null;
+
+  function abrirCores() {
+    gizes.hidden = false;
+    botoesBloqueados().forEach((b) => { b.inert = true; });
+  }
+
+  function fecharCores() {
+    gizes.hidden = true;
+    botoesBloqueados().forEach((b) => { b.inert = false; });
+    $('btnCores').focus();
+  }
+
+  function marcarEstrela(botao) {
+    const topo = parseFloat(botao.style.top);
+    const altura = parseFloat(botao.style.height);
+    estrela.style.top = `${topo + (altura - 24) / 2}px`;
+    estrela.removeAttribute('hidden');
+  }
+
+  function envoltoraDeCor(no, ed) {
+    const el = no.nodeType === 1 ? no : no.parentElement;
+    const alvo = el && el.closest(CLASSES_COR.map((c) => `.${c}`).join(','));
+    return alvo && ed.contains(alvo) ? alvo : null;
+  }
+
+  function abrirBordas(r, ed) {
+    const ini = envoltoraDeCor(r.startContainer, ed);
+    if (ini) {
+      const esquerda = document.createRange();
+      esquerda.setStart(ini, 0);
+      esquerda.setEnd(r.startContainer, r.startOffset);
+      if (!esquerda.collapsed) {
+        const copia = ini.cloneNode(false);
+        copia.appendChild(esquerda.extractContents());
+        ini.parentNode.insertBefore(copia, ini);
+      }
+      r.setStartBefore(ini);
+    }
+    const fim = envoltoraDeCor(r.endContainer, ed);
+    if (fim) {
+      const direita = document.createRange();
+      direita.setStart(r.endContainer, r.endOffset);
+      direita.setEnd(fim, fim.childNodes.length);
+      if (!direita.collapsed) {
+        const copia = fim.cloneNode(false);
+        copia.appendChild(direita.extractContents());
+        fim.parentNode.insertBefore(copia, fim.nextSibling);
+      }
+      r.setEndAfter(fim);
+    }
+  }
+
+  function todoNaCor(ed, r, cor) {
+    const andador = document.createTreeWalker(r.commonAncestorContainer.nodeType === 3
+      ? r.commonAncestorContainer.parentNode : r.commonAncestorContainer, NodeFilter.SHOW_TEXT);
+    let achou = false;
+    let no;
+    while ((no = andador.nextNode())) {
+      if (!r.intersectsNode(no) || !no.nodeValue) continue;
+      if (no === r.endContainer && r.endOffset === 0) continue;
+      if (no === r.startContainer && r.startOffset === no.nodeValue.length) continue;
+      achou = true;
+      const dono = envoltoraDeCor(no, ed);
+      if (!dono || !dono.classList.contains(`c-${cor}`)) return false;
+    }
+    if (!achou) {
+      const dono = envoltoraDeCor(r.commonAncestorContainer, ed);
+      return !!dono && dono.classList.contains(`c-${cor}`);
+    }
+    return true;
+  }
+
+  function colorir(cor) {
+    const campo = campoSelecionado();
+    if (!campo || campo.r.collapsed) {
+      avisarFolha('selecione um trecho do texto.');
+      return;
+    }
+    const { ed, r, indice } = campo;
+    const remover = todoNaCor(ed, r, cor);
+    abrirBordas(r, ed);
+
+    const fragmento = r.extractContents();
+    fragmento.querySelectorAll(CLASSES_COR.map((c) => `.${c}`).join(',')).forEach((s) => {
+      while (s.firstChild) s.parentNode.insertBefore(s.firstChild, s);
+      s.remove();
+    });
+
+    let primeiro;
+    let ultimo;
+    if (remover) {
+      primeiro = fragmento.firstChild;
+      ultimo = fragmento.lastChild;
+      r.insertNode(fragmento);
+    } else {
+      const marca = document.createElement('span');
+      marca.className = `c-${cor}`;
+      marca.appendChild(fragmento);
+      r.insertNode(marca);
+      primeiro = ultimo = marca;
+    }
+    if (primeiro && ultimo) {
+      const nova = document.createRange();
+      nova.setStartBefore(primeiro);
+      nova.setEndAfter(ultimo);
+      const s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(nova);
+    }
+    aoEscrever(ed, indice, true);
+  }
+
+  gizes.addEventListener('mousedown', (e) => e.preventDefault());
+  gizes.querySelectorAll('.giz').forEach((b) =>
+    b.addEventListener('click', () => {
+      corAtual = b.dataset.cor;
+      marcarEstrela(b);
+      colorir(corAtual);
+    }));
+  $('btnCores').addEventListener('click', abrirCores);
+  $('btnOkCores').addEventListener('click', fecharCores);
 
   carregar();
 })();
