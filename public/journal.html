@@ -67,6 +67,29 @@
         <button class="gizes-ok" id="btnOkCores" type="button" aria-label="ok">ok</button>
       </div>
 
+      <div class="papeis" id="papeis" role="dialog" aria-label="tipos de folha" hidden>
+        <div class="papeis-fundo"></div>
+        <svg class="papeis-folhas" viewBox="0 0 1366 768" width="1366" height="768" aria-hidden="true">
+          <polygon class="papeis-tras" points="338,119 1019,136 1012,780 390,780"/>
+          <polygon class="papeis-frente" points="427,58 982,62 975,780 418,780"/>
+        </svg>
+        <img class="papeis-logo" src="/logo.png" width="125" height="79" alt="" draggable="false">
+        <span class="papeis-titulo">tipos de<br>folha</span>
+        <button class="papel-op" type="button" data-papel="espiral" aria-label="caderno espiral"
+                style="left:460px;top:97px;width:285px;height:201px">
+          <img src="/papel-miniatura-espiral.png" alt="" draggable="false">
+        </button>
+        <button class="papel-op" type="button" data-papel="bege" aria-label="caderno bege"
+                style="left:645px;top:300px;width:283px;height:226px">
+          <img src="/papel-miniatura-bege.png" alt="" draggable="false">
+        </button>
+        <button class="papel-op" type="button" data-papel="padrao" aria-label="caderno cinza"
+                style="left:456px;top:537px;width:305px;height:211px">
+          <img src="/papel-miniatura-cinza.png" alt="" draggable="false">
+        </button>
+        <button class="papeis-ok" id="btnOkPapeis" type="button" aria-label="ok">ok</button>
+      </div>
+
       <div class="painel-escrever" id="painelEscrever" role="dialog" aria-label="escrever" hidden>
         <span class="painel-titulo painel-titulo-tamanho">tamanho</span>
         <button class="painel-op" type="button" data-tamanho="titulo" style="top:31px">título</button>

@@ -146,20 +146,30 @@
     return ed.textContent === '' ? '' : MARCA + html;
   }
 
+  const PAPEIS = {
+    padrao: '/journal-cena.png',
+    espiral: '/journal-cena-espiral.png',
+    bege: '/journal-cena-bege.png',
+  };
+  let papel = 'padrao';
+
   function montarFolha(pagina) {
     const texto = normalizarTexto(String(pagina[CAMPO_TEXTO] || ''));
+    const textura = Object.prototype.hasOwnProperty.call(PAPEIS, pagina.textura_Pag) ? pagina.textura_Pag : 'padrao';
     return {
       id: pagina.id,
       data: pagina.data || new Date().toISOString(),
       texto,
       salvo: texto,
+      textura,
+      texturaSalva: textura,
     };
   }
 
   async function criarFolha() {
     const resposta = await requisicao(urlPaginas, {
       method: 'POST',
-      body: JSON.stringify({ data: new Date().toISOString() }),
+      body: JSON.stringify({ data: new Date().toISOString(), textura_Pag: papel }),
     });
     folhas.push(montarFolha(resposta.pagina || resposta));
   }
@@ -168,8 +178,8 @@
     while (folhas.length < quantidade) await criarFolha();
   }
 
-  async function enviarTexto(folha, texto) {
-    const corpo = JSON.stringify({ [CAMPO_TEXTO]: texto });
+  async function enviarTexto(folha, texto, textura) {
+    const corpo = JSON.stringify({ [CAMPO_TEXTO]: texto, textura_Pag: textura });
     const id = encodeURIComponent(folha.id);
     let ultimo = null;
     for (const rota of [`${urlPaginas}/${id}`, `/api/paginas/${id}`]) {
@@ -217,6 +227,8 @@
         .sort((x, y) => new Date(x.p.data) - new Date(y.p.data) || x.i - y.i)
         .map((x) => montarFolha(x.p));
 
+      papel = folhas.length ? folhas[0].textura : 'padrao';
+      aplicarPapel();
       desenharFolhas();
 
       if (folhas.length < 2) {
@@ -427,12 +439,12 @@
   }
 
   function haAlteracoes() {
-    return folhas.some((f) => f.texto !== f.salvo);
+    return folhas.some((f) => f.texto !== f.salvo || f.textura !== f.texturaSalva);
   }
 
   async function salvar() {
     if (ocupado) return;
-    const pendentes = folhas.filter((f) => f.texto !== f.salvo);
+    const pendentes = folhas.filter((f) => f.texto !== f.salvo || f.textura !== f.texturaSalva);
     if (pendentes.length === 0) {
       avisarFolha('tudo salvo!');
       return;
@@ -441,8 +453,10 @@
     try {
       for (const folha of pendentes) {
         const texto = folha.texto;
-        await enviarTexto(folha, texto);
+        const textura = folha.textura;
+        await enviarTexto(folha, texto, textura);
         folha.salvo = texto;
+        folha.texturaSalva = textura;
       }
       avisarFolha('salvo com sucesso!');
     } catch (erro) {
@@ -727,6 +741,66 @@
     }));
   $('btnCores').addEventListener('click', abrirCores);
   $('btnOkCores').addEventListener('click', fecharCores);
+
+  const painelPapeis = $('papeis');
+  const imgCena = document.querySelector('.cena-img');
+  const opsPapel = Array.from(painelPapeis.querySelectorAll('[data-papel]'));
+
+  function aplicarPapel() {
+    imgCena.src = PAPEIS[papel];
+    document.body.classList.toggle('papel-espiral', papel === 'espiral');
+    document.body.classList.toggle('papel-bege', papel === 'bege');
+    opsPapel.forEach((b) => b.classList.toggle('selecionado', b.dataset.papel === papel));
+  }
+
+  function textoCabe() {
+    const palco = $('palco');
+    return folhas.every((f, i) => {
+      const medidor = document.createElement('div');
+      medidor.className = `texto-folha ${i % 2 === 0 ? 'texto-esq' : 'texto-dir'}`;
+      medidor.style.visibility = 'hidden';
+      medidor.innerHTML = htmlDoTexto(f.texto);
+      palco.appendChild(medidor);
+      const cabe = medidor.scrollHeight <= medidor.clientHeight + 1;
+      medidor.remove();
+      return cabe;
+    });
+  }
+
+  function escolherPapel(novo) {
+    if (novo === papel) return;
+    const anterior = papel;
+    papel = novo;
+    aplicarPapel();
+    if (!textoCabe()) {
+      papel = anterior;
+      aplicarPapel();
+      avisarFolha('o texto não cabe nesse papel.', 3000);
+      return;
+    }
+    folhas.forEach((f) => { f.textura = papel; });
+  }
+
+  function travarFundo(travar) {
+    botoesBloqueados().forEach((b) => { b.inert = travar; });
+    [taEsq, taDir].forEach((t) => { t.inert = travar; });
+  }
+
+  function abrirPapeis() {
+    Object.values(PAPEIS).forEach((src) => { new Image().src = src; });
+    painelPapeis.hidden = false;
+    travarFundo(true);
+  }
+
+  function fecharPapeis() {
+    painelPapeis.hidden = true;
+    travarFundo(false);
+    $('btnTipos').focus();
+  }
+
+  opsPapel.forEach((b) => b.addEventListener('click', () => escolherPapel(b.dataset.papel)));
+  $('btnTipos').addEventListener('click', abrirPapeis);
+  $('btnOkPapeis').addEventListener('click', fecharPapeis);
 
   carregar();
 })();
