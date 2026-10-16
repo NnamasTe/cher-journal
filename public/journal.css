@@ -223,12 +223,28 @@ body {
   color: #333;
   font-family: "Patrick Hand", "Comic Sans MS", "Comic Neue", cursive;
   font-weight: 400;
-  font-size: 24px;
+  font-size: 15px;
   line-height: 34px;
   text-align: left;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
   caret-color: #333;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
 }
+
+.texto-folha[contenteditable="false"] {
+  cursor: default;
+}
+
+.texto-folha span {
+  line-height: 0;
+}
+
+.texto-folha .s-titulo { font-size: 25px; }
+.texto-folha .s-sub { font-size: 20px; }
+.texto-folha .s-texto { font-size: 15px; }
 
 .texto-esq { left: 251px; width: 406px; }
 .texto-dir { left: 705px; width: 407px; }
@@ -255,4 +271,96 @@ body {
 
 .aviso-folha[hidden] {
   display: none;
+}
+
+.painel-escrever {
+  position: absolute;
+  left: 79px;
+  top: 166px;
+  width: 112px;
+  height: 307px;
+  z-index: 6;
+  overflow: hidden;
+  border-radius: 14px 14px 30px 30px;
+  background: #85582e;
+  font-family: "Courier New", Courier, "Liberation Mono", Cousine, monospace;
+  user-select: none;
+}
+
+.painel-escrever[hidden] {
+  display: none;
+}
+
+.painel-titulo {
+  position: absolute;
+  left: 0;
+  width: 110px;
+  height: 30px;
+  background: #9d9268;
+  color: #d4c69d;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 30px;
+  text-align: center;
+}
+
+.painel-titulo-tamanho { top: 0; }
+.painel-titulo-tipo { top: 136px; }
+
+.painel-op {
+  position: absolute;
+  left: 0;
+  width: 110px;
+  height: 24px;
+  padding: 0 0 0 5px;
+  border: 0;
+  margin: 0;
+  background: none;
+  color: #d4c69d;
+  font: inherit;
+  font-size: 17px;
+  line-height: 24px;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+}
+
+.painel-op:hover {
+  background: rgba(212, 198, 157, 0.18);
+}
+
+.painel-op:focus {
+  outline: none;
+}
+
+.painel-op:focus-visible,
+.painel-ok:focus-visible {
+  outline: 3px solid rgba(212, 198, 157, 0.9);
+  outline-offset: -4px;
+}
+
+.painel-ok {
+  position: absolute;
+  left: 16px;
+  top: 258px;
+  width: 79px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: #9d9268;
+  color: #d4c69d;
+  font: inherit;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 36px;
+  text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+}
+
+.painel-ok:focus {
+  outline: none;
 }

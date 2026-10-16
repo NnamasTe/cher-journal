@@ -25,10 +25,10 @@
         <span class="data-folha" id="dataFolha"></span>
       </main>
 
-      <textarea class="texto-folha texto-esq" id="textoEsq" spellcheck="false" readonly
-                aria-label="folha da esquerda"></textarea>
-      <textarea class="texto-folha texto-dir" id="textoDir" spellcheck="false" readonly
-                aria-label="folha da direita"></textarea>
+      <div class="texto-folha texto-esq" id="textoEsq" contenteditable="false" spellcheck="false"
+           role="textbox" aria-multiline="true" aria-label="folha da esquerda"></div>
+      <div class="texto-folha texto-dir" id="textoDir" contenteditable="false" spellcheck="false"
+           role="textbox" aria-multiline="true" aria-label="folha da direita"></div>
       <span class="aviso-folha" id="avisoFolha" role="status" aria-live="polite" hidden></span>
 
       <button class="item seta seta-esq" id="btnVoltar" type="button" aria-label="voltar folha"></button>
@@ -52,6 +52,18 @@
               style="left:1226px;top:150px;width:140px;height:100px"></button>
       <button class="item" id="btnAnotacoes" type="button" aria-label="anotações"
               style="left:1121px;top:439px;width:245px;height:328px;clip-path:polygon(76px 0px, 245px 45px, 245px 328px, 69px 328px, 0px 311px)"></button>
+
+      <div class="painel-escrever" id="painelEscrever" role="dialog" aria-label="escrever" hidden>
+        <span class="painel-titulo painel-titulo-tamanho">tamanho</span>
+        <button class="painel-op" type="button" data-tamanho="titulo" style="top:31px">título</button>
+        <button class="painel-op" type="button" data-tamanho="subtitulo" style="top:55px">subtítulo</button>
+        <button class="painel-op" type="button" data-tamanho="texto" style="top:79px">texto</button>
+        <span class="painel-titulo painel-titulo-tipo">tipo</span>
+        <button class="painel-op" type="button" data-tipo="italic" style="top:170px">itálico</button>
+        <button class="painel-op" type="button" data-tipo="bold" style="top:194px">negrito</button>
+        <button class="painel-op" type="button" data-tipo="underline" style="top:218px">sublinhar</button>
+        <button class="painel-ok" id="btnOkEscrever" type="button" aria-label="ok">ok</button>
+      </div>
 
     </div>
 

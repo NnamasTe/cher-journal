@@ -80,8 +80,69 @@
     }, ms);
   }
 
+  const MARCA = '<!--cj1-->';
+  const LINHA = 34;
+  const CLASSE_FONT = { 1: 's-texto', 2: 's-texto', 3: 's-texto', 4: 's-sub', 5: 's-titulo', 6: 's-titulo', 7: 's-titulo' };
+  const CLASSES = ['s-titulo', 's-sub', 's-texto'];
+
+  function percorrer(origem, destino) {
+    for (const no of Array.from(origem.childNodes)) {
+      if (no.nodeType === 3) {
+        destino.appendChild(document.createTextNode(no.nodeValue));
+        continue;
+      }
+      if (no.nodeType !== 1) continue;
+      const tag = no.tagName.toLowerCase();
+      let alvo = destino;
+      if (tag === 'br') {
+        destino.appendChild(document.createTextNode('\n'));
+        continue;
+      }
+      if (tag === 'b' || tag === 'strong') alvo = document.createElement('b');
+      else if (tag === 'i' || tag === 'em') alvo = document.createElement('i');
+      else if (tag === 'u') alvo = document.createElement('u');
+      else if (tag === 'span' && CLASSES.some((c) => no.classList.contains(c))) {
+        alvo = document.createElement('span');
+        alvo.className = CLASSES.find((c) => no.classList.contains(c));
+      } else if (tag === 'font' && CLASSE_FONT[no.getAttribute('size')]) {
+        alvo = document.createElement('span');
+        alvo.className = CLASSE_FONT[no.getAttribute('size')];
+      }
+      if (alvo !== destino) destino.appendChild(alvo);
+      percorrer(no, alvo);
+      if (tag === 'div' || tag === 'p') destino.appendChild(document.createTextNode('\n'));
+    }
+  }
+
+  function sanitizar(bruto) {
+    const doc = new DOMParser().parseFromString(`<body>${bruto}`, 'text/html');
+    const saida = document.createElement('div');
+    percorrer(doc.body, saida);
+    return saida.innerHTML;
+  }
+
+  function textoPuroParaHtml(texto) {
+    const saida = document.createElement('div');
+    saida.textContent = texto;
+    return saida.innerHTML;
+  }
+
+  function normalizarTexto(texto) {
+    if (texto.startsWith(MARCA)) return MARCA + sanitizar(texto.slice(MARCA.length));
+    return texto ? MARCA + textoPuroParaHtml(texto) : '';
+  }
+
+  function htmlDoTexto(texto) {
+    return texto.startsWith(MARCA) ? texto.slice(MARCA.length) : '';
+  }
+
+  function lerCampo(ed) {
+    const html = sanitizar(ed.innerHTML);
+    return ed.textContent === '' ? '' : MARCA + html;
+  }
+
   function montarFolha(pagina) {
-    const texto = String(pagina[CAMPO_TEXTO] || '');
+    const texto = normalizarTexto(String(pagina[CAMPO_TEXTO] || ''));
     return {
       id: pagina.id,
       data: pagina.data || new Date().toISOString(),
@@ -125,10 +186,10 @@
     $('numDir').textContent = String(esq + 1);
     const base = fe ? fe.data : dataJournal;
     $('dataFolha').textContent = base ? formatoData.format(new Date(base)) : '';
-    taEsq.value = fe ? fe.texto : '';
-    taDir.value = fd ? fd.texto : '';
-    taEsq.readOnly = !fe;
-    taDir.readOnly = !fd;
+    taEsq.innerHTML = fe ? htmlDoTexto(fe.texto) : '';
+    taDir.innerHTML = fd ? htmlDoTexto(fd.texto) : '';
+    taEsq.contentEditable = fe ? 'true' : 'false';
+    taDir.contentEditable = fd ? 'true' : 'false';
   }
 
   async function carregar() {
@@ -165,10 +226,10 @@
     }
   }
 
-  function registrar(indice, antes, depois) {
+  function registrar(indice, antes, depois, separar = false) {
     const agora = Date.now();
     const ultimo = desfazer[desfazer.length - 1];
-    if (ultimo && ultimo.indice === indice && agora - ultimo.t < 700 &&
+    if (!separar && ultimo && ultimo.indice === indice && agora - ultimo.t < 700 &&
         Math.abs(depois.length - ultimo.antes.length) < 60) {
       ultimo.depois = depois;
       ultimo.t = agora;
@@ -179,28 +240,135 @@
     refazer.length = 0;
   }
 
-  function aoEscrever(ta, indice) {
-    const folha = folhas[indice];
-    if (!folha || ta.value === folha.texto) return;
+  function caretNoFim(ed) {
+    const r = document.createRange();
+    r.selectNodeContents(ed);
+    r.collapse(false);
+    const s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(r);
+  }
 
-    if (ta.scrollHeight > ta.clientHeight + 1) {
-      const posicao = ta.selectionStart - (ta.value.length - folha.texto.length);
-      ta.value = folha.texto;
-      const p = Math.max(0, Math.min(posicao, ta.value.length));
-      ta.setSelectionRange(p, p);
+  function aoEscrever(ed, indice, separar = false) {
+    const folha = folhas[indice];
+    if (!folha) return;
+    const novo = lerCampo(ed);
+    if (novo === folha.texto) return;
+
+    if (ed.scrollHeight > ed.clientHeight + 1) {
+      ed.innerHTML = htmlDoTexto(folha.texto);
+      ed.focus();
+      caretNoFim(ed);
       avisarFolha('a folha está cheia.');
       return;
     }
 
-    registrar(indice, folha.texto, ta.value);
-    folha.texto = ta.value;
+    registrar(indice, folha.texto, novo, separar);
+    folha.texto = novo;
   }
 
-  function ligarEscrita(ta, deslocamento) {
-    ta.addEventListener('input', (e) => {
-      if (!e.isComposing) aoEscrever(ta, esq - 1 + deslocamento);
+  function medir(ed, no, deslocamento) {
+    const r = document.createRange();
+    r.setStart(ed, 0);
+    r.setEnd(no, deslocamento);
+    const c = document.createElement('div');
+    c.appendChild(r.cloneContents());
+    return c.textContent.length;
+  }
+
+  function localizar(ed, posicao) {
+    let resto = posicao;
+    const andador = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    let no;
+    while ((no = andador.nextNode())) {
+      if (no.nodeType === 3) {
+        if (resto <= no.nodeValue.length) return [no, resto];
+        resto -= no.nodeValue.length;
+      }
+    }
+    return [ed, ed.childNodes.length];
+  }
+
+  function selecionarTrecho(ed, a, b) {
+    const r = document.createRange();
+    const ini = localizar(ed, a);
+    const fim = localizar(ed, b);
+    r.setStart(ini[0], ini[1]);
+    r.setEnd(fim[0], fim[1]);
+    const s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(r);
+  }
+
+  function linhaDoFim(ed) {
+    const marcador = document.createElement('span');
+    marcador.style.cssText = 'display:inline-block;width:0;height:0;line-height:0';
+    ed.appendChild(marcador);
+    const linha = Math.floor(marcador.offsetTop / LINHA);
+    marcador.remove();
+    return linha;
+  }
+
+  function terminaEmQuebra(ed) {
+    return ed.textContent.endsWith('\n');
+  }
+
+  function clicarNaLinha(e, ed, indice) {
+    if (ed.contentEditable !== 'true' || e.button !== 0) return;
+    const caixa = ed.getBoundingClientRect();
+    const escala = caixa.height / ed.offsetHeight || 1;
+    const maxLinha = Math.floor(ed.clientHeight / LINHA) - 1;
+    const alvo = Math.min(maxLinha, Math.floor((e.clientY - caixa.top) / escala / LINHA));
+    const fim = linhaDoFim(ed);
+    const quebra = terminaEmQuebra(ed);
+    if (alvo < fim || (alvo === fim && !quebra)) return; // clique normal
+    if (alvo === 0 && !ed.firstChild) return;
+
+    e.preventDefault();
+    const novas = document.createTextNode('\n'.repeat(alvo - fim));
+    ed.appendChild(novas);
+    let posicao = null;
+    if (terminaEmQuebra(ed)) {
+      novas.nodeValue += '\n';
+      posicao = [novas, novas.nodeValue.length - 1];
+    }
+    ed.focus();
+    const r = document.createRange();
+    if (posicao) {
+      r.setStart(posicao[0], posicao[1]);
+    } else {
+      r.selectNodeContents(ed);
+      r.collapse(false);
+    }
+    r.collapse(true);
+    const s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(r);
+    aoEscrever(ed, indice);
+  }
+
+  function ligarEscrita(ed, deslocamento) {
+    const indice = () => esq - 1 + deslocamento;
+    ed.addEventListener('input', (e) => {
+      if (!e.isComposing) aoEscrever(ed, indice());
     });
-    ta.addEventListener('compositionend', () => aoEscrever(ta, esq - 1 + deslocamento));
+    ed.addEventListener('compositionend', () => aoEscrever(ed, indice()));
+    ed.addEventListener('mousedown', (e) => clicarNaLinha(e, ed, indice()));
+    ed.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.isComposing) {
+        e.preventDefault();
+        document.execCommand('insertLineBreak');
+      }
+    });
+    ed.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const texto = (e.clipboardData || window.clipboardData).getData('text/plain').replace(/\r\n?/g, '\n');
+      texto.split('\n').forEach((parte, i) => {
+        if (i > 0) document.execCommand('insertLineBreak');
+        if (parte) document.execCommand('insertText', false, parte);
+      });
+    });
+    ed.addEventListener('drop', (e) => e.preventDefault());
   }
   ligarEscrita(taEsq, 0);
   ligarEscrita(taDir, 1);
@@ -217,7 +385,7 @@
     desenharFolhas();
     const ta = entrada.indice % 2 === 0 ? taEsq : taDir;
     ta.focus();
-    ta.setSelectionRange(ta.value.length, ta.value.length);
+    caretNoFim(ta);
   }
 
   document.addEventListener('keydown', (e) => {
@@ -371,6 +539,64 @@
   $('btnAnotacoes').addEventListener('click', abrirAnotacoes);
   $('btnCopiar').addEventListener('click', copiarAnotacoes);
   $('btnOk').addEventListener('click', fecharAnotacoes);
+
+  const painel = $('painelEscrever');
+  const botoesBloqueados = () => Array.from(document.querySelectorAll('#palco .item'));
+
+  function abrirEscrever() {
+    painel.hidden = false;
+    botoesBloqueados().forEach((b) => { b.inert = true; });
+  }
+
+  function fecharEscrever() {
+    painel.hidden = true;
+    botoesBloqueados().forEach((b) => { b.inert = false; });
+    $('btnEscrever').focus();
+  }
+
+  function campoSelecionado() {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    const r = sel.getRangeAt(0);
+    for (const ed of [taEsq, taDir]) {
+      if (ed.contentEditable === 'true' && ed.contains(r.commonAncestorContainer)) {
+        return { ed, r, indice: esq - 1 + (ed === taDir ? 1 : 0) };
+      }
+    }
+    return null;
+  }
+
+  function aplicarFormato(comando, valor) {
+    const campo = campoSelecionado();
+    if (!campo || campo.r.collapsed) {
+      avisarFolha('selecione um trecho do texto.');
+      return;
+    }
+    const { ed, r, indice } = campo;
+    const a = medir(ed, r.startContainer, r.startOffset);
+    const b = medir(ed, r.endContainer, r.endOffset);
+    ed.focus();
+    document.execCommand('styleWithCSS', false, false);
+    document.execCommand(comando, false, valor);
+    ed.querySelectorAll('font[size]').forEach((f) => {
+      const span = document.createElement('span');
+      span.className = CLASSE_FONT[f.getAttribute('size')] || 's-texto';
+      while (f.firstChild) span.appendChild(f.firstChild);
+      f.replaceWith(span);
+    });
+    selecionarTrecho(ed, a, b);
+    aoEscrever(ed, indice, true);
+  }
+
+  const TAMANHOS = { titulo: '5', subtitulo: '4', texto: '3' };
+
+  painel.addEventListener('mousedown', (e) => e.preventDefault()); // mantém o trecho selecionado
+  painel.querySelectorAll('[data-tamanho]').forEach((b) =>
+    b.addEventListener('click', () => aplicarFormato('fontSize', TAMANHOS[b.dataset.tamanho])));
+  painel.querySelectorAll('[data-tipo]').forEach((b) =>
+    b.addEventListener('click', () => aplicarFormato(b.dataset.tipo)));
+  $('btnEscrever').addEventListener('click', abrirEscrever);
+  $('btnOkEscrever').addEventListener('click', fecharEscrever);
 
   carregar();
 })();
