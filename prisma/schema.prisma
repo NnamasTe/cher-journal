@@ -23,6 +23,7 @@ model Pagina {
   cor_Texto   String   @default("#3b2f2f")
   data        DateTime @default(now())
   imagens     String[]
+  adesivos    Json     @default("[]")
   anotacoes   String   @default("") @db.Text
   journalId   String
   journal     Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)

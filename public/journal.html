@@ -31,6 +31,8 @@
            role="textbox" aria-multiline="true" aria-label="folha da direita"></div>
       <span class="aviso-folha" id="avisoFolha" role="status" aria-live="polite" hidden></span>
 
+      <div class="adesivos-camada" id="adCamada"></div>
+
       <button class="item seta seta-esq" id="btnVoltar" type="button" aria-label="voltar folha"></button>
       <button class="item seta seta-dir" id="btnAvancar" type="button" aria-label="avançar folha"></button>
 
@@ -101,6 +103,26 @@
         <button class="painel-op" type="button" data-tipo="underline" style="top:218px">sublinhar</button>
         <button class="painel-ok" id="btnOkEscrever" type="button" aria-label="ok">ok</button>
       </div>
+
+      <div class="adesivos-ui" id="adUi">
+        <div class="adsel" id="adSel" hidden>
+          <span class="adsel-haste"></span>
+          <button class="adsel-alca adsel-giro" type="button" data-gesto="girar" aria-label="girar adesivo"></button>
+          <button class="adsel-alca adsel-nw" type="button" data-gesto="tamanho" data-sx="-1" data-sy="-1" aria-label="redimensionar adesivo"></button>
+          <button class="adsel-alca adsel-ne" type="button" data-gesto="tamanho" data-sx="1" data-sy="-1" aria-label="redimensionar adesivo"></button>
+          <button class="adsel-alca adsel-se" type="button" data-gesto="tamanho" data-sx="1" data-sy="1" aria-label="redimensionar adesivo"></button>
+          <button class="adsel-alca adsel-sw" type="button" data-gesto="tamanho" data-sx="-1" data-sy="1" aria-label="redimensionar adesivo"></button>
+        </div>
+        <div class="adbar" id="adBar" role="toolbar" aria-label="ajustes do adesivo" hidden>
+          <button type="button" data-acao="espelhar">espelhar</button>
+          <button type="button" data-acao="duplicar">duplicar</button>
+          <button type="button" data-acao="frente">p/ frente</button>
+          <button type="button" data-acao="tras">p/ trás</button>
+        </div>
+        <div class="adrec" id="adRecentes" role="group" aria-label="adesivos recentes" hidden></div>
+        <button class="adesivos-ok" id="btnOkAdesivos" type="button" aria-label="ok" hidden>ok</button>
+      </div>
+      <input type="file" id="arqAdesivo" accept="image/png,image/jpeg,image/webp" multiple hidden>
 
     </div>
 

@@ -596,3 +596,227 @@ body.papel-bege .texto-folha {
   outline: 3px solid rgba(212, 198, 157, 0.9);
   outline-offset: -4px;
 }
+
+/* ---------- adesivos ---------- */
+
+.adesivos-camada {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  /* o recorte (clip-path) de cada tipo de papel é definido em journal.js (PAPEL_AD) */
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.adesivo {
+  position: absolute;
+  pointer-events: none;
+  touch-action: none;
+  transform-origin: center center;
+}
+
+.adesivo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 1px 2px rgba(60, 35, 10, 0.28));
+}
+
+.adesivos-camada.editando .adesivo {
+  pointer-events: auto;
+  cursor: move;
+}
+
+.adesivos-camada.apagando .adesivo {
+  cursor: not-allowed;
+}
+
+.adesivos-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.adesivos-ui [hidden] {
+  display: none;
+}
+
+.adsel {
+  position: absolute;
+  box-sizing: border-box;
+  outline: 2px dashed #9d9268;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.75);
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+.adsel-haste {
+  position: absolute;
+  left: 50%;
+  top: -30px;
+  width: 0;
+  height: 30px;
+  border-left: 2px solid #9d9268;
+}
+
+.adsel-alca {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  border: 2px solid #9d9268;
+  border-radius: 50%;
+  background: #f3ecd2;
+  pointer-events: auto;
+  touch-action: none;
+  appearance: none;
+}
+
+.adsel-giro { left: 50%; top: -40px; margin-left: -9px; cursor: grab; }
+.adsel-nw { left: -9px; top: -9px; border-radius: 4px; cursor: nwse-resize; }
+.adsel-ne { right: -9px; top: -9px; border-radius: 4px; cursor: nesw-resize; }
+.adsel-se { right: -9px; bottom: -9px; border-radius: 4px; cursor: nwse-resize; }
+.adsel-sw { left: -9px; bottom: -9px; border-radius: 4px; cursor: nesw-resize; }
+
+.adsel-alca:focus {
+  outline: none;
+}
+
+.adbar {
+  position: absolute;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 18px;
+  background: #85582e;
+  font-family: "Courier New", Courier, "Liberation Mono", Cousine, monospace;
+  pointer-events: auto;
+}
+
+.adbar button {
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 13px;
+  background: #9d9268;
+  color: #d4c69d;
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 26px;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+}
+
+.adbar button:hover {
+  background: #aaa076;
+}
+
+.adbar button:focus {
+  outline: none;
+}
+
+.adbar button:focus-visible,
+.adesivos-ok:focus-visible {
+  outline: 3px solid rgba(212, 198, 157, 0.9);
+  outline-offset: -4px;
+}
+
+.adesivos-ok {
+  position: absolute;
+  left: 1233px;
+  top: 109px;
+  width: 73px;
+  height: 35px;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: #9d9268;
+  color: #d4c69d;
+  font-family: "Courier New", Courier, "Liberation Mono", Cousine, monospace;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 16px;
+  line-height: 35px;
+  text-align: center;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+}
+
+.adesivos-ok:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.adesivos-ok:focus {
+  outline: none;
+}
+
+.adrec {
+  position: absolute;
+  left: 853px;
+  top: 11px;
+  width: 312px;
+  height: 77px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  padding: 0 0 0 17px;
+  border-radius: 18px 18px 18px 42px;
+  background: #9d9268;
+  pointer-events: auto;
+}
+
+.adrec[hidden] {
+  display: none;
+}
+
+.adrec-op {
+  flex: 0 0 auto;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+}
+
+.adrec-op img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.adrec-op:hover {
+  background: rgba(243, 236, 210, 0.18);
+}
+
+.adrec-op:focus {
+  outline: none;
+}
+
+.adrec-op:focus-visible {
+  outline: 3px solid rgba(243, 236, 210, 0.9);
+  outline-offset: -3px;
+}

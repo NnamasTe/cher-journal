@@ -20,34 +20,40 @@ function pareceImagem(buf, tipo) {
   return false;
 }
 
-router.post(
-  '/uploads/capa',
-  express.raw({ type: Object.keys(TIPOS), limit: '4mb' }),
-  async (req, res, next) => {
-    try {
-      if (!process.env.BLOB_READ_WRITE_TOKEN) {
-        return res.status(500).json({ erro: 'O armazenamento de imagens ainda não foi configurado.' });
-      }
+function receberImagem(pasta) {
+  return [
+    express.raw({ type: Object.keys(TIPOS), limit: '4mb' }),
+    async (req, res, next) => {
+      try {
+        if (!process.env.BLOB_READ_WRITE_TOKEN) {
+          return res.status(500).json({ erro: 'O armazenamento de imagens ainda não foi configurado.' });
+        }
 
-      const tipo = (req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
-      const extensao = TIPOS[tipo];
-      if (!extensao || !Buffer.isBuffer(req.body) || req.body.length === 0) {
-        return res.status(400).json({ erro: 'Envie uma imagem JPEG, PNG ou WebP.' });
-      }
-      if (!pareceImagem(req.body, tipo)) {
-        return res.status(400).json({ erro: 'O arquivo não parece ser uma imagem válida.' });
-      }
+        const tipo = (req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+        const extensao = TIPOS[tipo];
+        if (!extensao || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+          return res.status(400).json({ erro: 'Envie uma imagem JPEG, PNG ou WebP.' });
+        }
+        if (!pareceImagem(req.body, tipo)) {
+          return res.status(400).json({ erro: 'O arquivo não parece ser uma imagem válida.' });
+        }
 
-      const blob = await put(`capas/capa.${extensao}`, req.body, {
-        access: 'public',
-        addRandomSuffix: true,
-        contentType: tipo,
-      });
-      return res.status(201).json({ url: blob.url });
-    } catch (erro) {
-      return next(erro);
-    }
-  }
-);
+        // O arquivo é guardado exatamente como chegou (sem reprocessar),
+        // então a transparência dos PNGs é preservada.
+        const blob = await put(`${pasta}/${pasta.slice(0, -1)}.${extensao}`, req.body, {
+          access: 'public',
+          addRandomSuffix: true,
+          contentType: tipo,
+        });
+        return res.status(201).json({ url: blob.url });
+      } catch (erro) {
+        return next(erro);
+      }
+    },
+  ];
+}
+
+router.post('/uploads/capa', ...receberImagem('capas'));
+router.post('/uploads/adesivo', ...receberImagem('adesivos'));
 
 module.exports = router;

@@ -1,6 +1,6 @@
 const express = require('express');
 const prisma = require('../db');
-const { textoObrigatorio, urlOuCaminho, corHex, listaDeUrls } = require('../validacao');
+const { textoObrigatorio, urlOuCaminho, corHex, listaDeUrls, listaDeAdesivos } = require('../validacao');
 
 const router = express.Router();
 
@@ -100,6 +100,12 @@ function lerCamposDaPagina(body, parcial) {
     const lista = listaDeUrls(body.imagens);
     if (!lista) return { erro: 'Lista de imagens inválida (até 20 endereços https).' };
     data.imagens = lista;
+  }
+
+  if (body.adesivos !== undefined) {
+    const lista = listaDeAdesivos(body.adesivos);
+    if (!lista) return { erro: 'Lista de adesivos inválida (até 20 por folha).' };
+    data.adesivos = lista;
   }
 
   if (parcial && Object.keys(data).length === 0) return { erro: 'Nada para atualizar.' };

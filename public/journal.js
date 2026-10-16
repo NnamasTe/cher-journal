@@ -156,6 +156,7 @@
   function montarFolha(pagina) {
     const texto = normalizarTexto(String(pagina[CAMPO_TEXTO] || ''));
     const textura = Object.prototype.hasOwnProperty.call(PAPEIS, pagina.textura_Pag) ? pagina.textura_Pag : 'padrao';
+    const adesivos = Array.isArray(pagina.adesivos) ? pagina.adesivos.map(limparAdesivo).filter(Boolean) : [];
     return {
       id: pagina.id,
       data: pagina.data || new Date().toISOString(),
@@ -163,6 +164,8 @@
       salvo: texto,
       textura,
       texturaSalva: textura,
+      adesivos,
+      adesivosSalvo: serialAd(adesivos),
     };
   }
 
@@ -178,8 +181,8 @@
     while (folhas.length < quantidade) await criarFolha();
   }
 
-  async function enviarTexto(folha, texto, textura) {
-    const corpo = JSON.stringify({ [CAMPO_TEXTO]: texto, textura_Pag: textura });
+  async function enviarTexto(folha, texto, textura, adesivos) {
+    const corpo = JSON.stringify({ [CAMPO_TEXTO]: texto, textura_Pag: textura, adesivos: JSON.parse(adesivos) });
     const id = encodeURIComponent(folha.id);
     let ultimo = null;
     for (const rota of [`${urlPaginas}/${id}`, `/api/paginas/${id}`]) {
@@ -205,6 +208,7 @@
     taDir.innerHTML = fd ? htmlDoTexto(fd.texto) : '';
     taEsq.contentEditable = fe ? 'true' : 'false';
     taDir.contentEditable = fd ? 'true' : 'false';
+    desenharAdesivos();
   }
 
   async function carregar() {
@@ -407,7 +411,7 @@
 
   document.addEventListener('keydown', (e) => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-    if (e.target === anotTextoEl || !$('palcoAnot').hidden) return; 
+    if (editandoAd || e.target === anotTextoEl || !$('palcoAnot').hidden) return; 
     const tecla = e.key.toLowerCase();
     if (tecla === 'z' && !e.shiftKey) {
       e.preventDefault();
@@ -438,13 +442,17 @@
     }
   }
 
+  function folhaPendente(f) {
+    return f.texto !== f.salvo || f.textura !== f.texturaSalva || serialAd(f.adesivos) !== f.adesivosSalvo;
+  }
+
   function haAlteracoes() {
-    return folhas.some((f) => f.texto !== f.salvo || f.textura !== f.texturaSalva);
+    return folhas.some(folhaPendente);
   }
 
   async function salvar() {
-    if (ocupado) return;
-    const pendentes = folhas.filter((f) => f.texto !== f.salvo || f.textura !== f.texturaSalva);
+    if (ocupado || editandoAd) return;
+    const pendentes = folhas.filter(folhaPendente);
     if (pendentes.length === 0) {
       avisarFolha('tudo salvo!');
       return;
@@ -454,9 +462,11 @@
       for (const folha of pendentes) {
         const texto = folha.texto;
         const textura = folha.textura;
-        await enviarTexto(folha, texto, textura);
+        const adesivos = serialAd(folha.adesivos);
+        await enviarTexto(folha, texto, textura, adesivos);
         folha.salvo = texto;
         folha.texturaSalva = textura;
+        folha.adesivosSalvo = adesivos;
       }
       avisarFolha('salvo com sucesso!');
     } catch (erro) {
@@ -778,7 +788,11 @@
       avisarFolha('o texto não cabe nesse papel.', 3000);
       return;
     }
-    folhas.forEach((f) => { f.textura = papel; });
+    folhas.forEach((f) => {
+      f.textura = papel;
+      f.adesivos.forEach((a) => { [a.x, a.y] = centroValido(a.x, a.y); a.x = arred(a.x); a.y = arred(a.y); });
+    });
+    desenharAdesivos();
   }
 
   function travarFundo(travar) {
@@ -801,6 +815,747 @@
   opsPapel.forEach((b) => b.addEventListener('click', () => escolherPapel(b.dataset.papel)));
   $('btnTipos').addEventListener('click', abrirPapeis);
   $('btnOkPapeis').addEventListener('click', fecharPapeis);
+
+  // ---------- adesivos ----------
+
+  const camadaAd = $('adCamada');
+  const selAd = $('adSel');
+  const barAd = $('adBar');
+  const okAd = $('btnOkAdesivos');
+  const arqAd = $('arqAdesivo');
+
+  const TIPOS_AD = ['image/png', 'image/jpeg', 'image/webp'];
+  const LIMITE_AD = 20;
+  const LIMITE_BYTES_AD = 4 * 1024 * 1024;
+  const LADO_MIN = 24;
+  const LADO_MAX = 1000;
+  const LADO_INICIAL = 220;
+  
+  const PAPEL_AD = {
+    padrao: {
+      recorte: [[226, 33], [1138, 33], [1138, 735], [226, 735]],
+      caixa: { x1: 226, x2: 1138, y1: 33, y2: 735 },
+      divisa: 683,
+      centros: [454, 908],
+    },
+    bege: {
+      recorte: [[206, 8], [1137, 8], [1139, 600], [1124, 735], [1000, 746], [206, 746]],
+      caixa: { x1: 206, x2: 1137, y1: 8, y2: 746 },
+      divisa: 668,
+      centros: [446, 899],
+    },
+    espiral: {
+      recorte: [
+        [176, 8], [640, 8], [640, 738], [176, 738],
+      ],
+      recorte2: [[735, 8], [1189, 8], [1174, 300], [1158, 600], [1128, 736], [735, 736]],
+      caixa: { x1: 176, x2: 1189, y1: 8, y2: 738 },
+      divisa: 690,
+      centros: [418, 952],
+      argola: [640, 735],
+    },
+  };
+  const areaAd = () => PAPEL_AD[papel] || PAPEL_AD.padrao;
+
+  function centroValido(x, y) {
+    const a = areaAd();
+    let cx = limitar(x, a.caixa.x1, a.caixa.x2);
+    const cy = limitar(y, a.caixa.y1, a.caixa.y2);
+    if (a.argola && cx > a.argola[0] && cx < a.argola[1]) {
+      cx = cx - a.argola[0] < a.argola[1] - cx ? a.argola[0] : a.argola[1];
+    }
+    return [cx, cy];
+  }
+
+  let editandoAd = false;
+  let apagandoAd = false;
+  let enviandoAd = false;
+  let selecionadoAd = null;
+  let ultimoFoco = taEsq;
+  const pendentesAd = new Map();
+  const histAd = [];
+  const refAd = [];
+  const elsAd = new Map();
+
+  const arred = (n) => Math.round(n * 10) / 10;
+  const limitar = (n, min, max) => Math.min(max, Math.max(min, n));
+  const novoId = () => (window.crypto && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);
+
+  function normalizarGraus(g) {
+    let r = g % 360;
+    if (r > 180) r -= 360;
+    if (r <= -180) r += 360;
+    return r;
+  }
+
+  function limparAdesivo(a) {
+    if (!a || typeof a.src !== 'string' || !a.src) return null;
+    const num = (v, padrao) => (Number.isFinite(Number(v)) ? Number(v) : padrao);
+    return {
+      id: typeof a.id === 'string' && a.id ? a.id : novoId(),
+      src: a.src,
+      x: arred(num(a.x, 450)),
+      y: arred(num(a.y, 380)),
+      w: arred(limitar(num(a.w, LADO_INICIAL), LADO_MIN, LADO_MAX)),
+      h: arred(limitar(num(a.h, LADO_INICIAL), LADO_MIN, LADO_MAX)),
+      rot: arred(normalizarGraus(num(a.rot, 0))),
+      espelho: !!a.espelho,
+    };
+  }
+
+  function serialAd(lista) {
+    return JSON.stringify(lista.map(limparAdesivo).filter(Boolean));
+  }
+
+  function achar(id) {
+    if (!id) return null;
+    for (const f of folhas) {
+      const s = f.adesivos.find((a) => a.id === id);
+      if (s) return { s, folha: f };
+    }
+    return null;
+  }
+
+  function indicesVisiveis() {
+    return [esq - 1, esq].filter((i) => folhas[i]);
+  }
+
+  function temAdesivosVisiveis() {
+    return indicesVisiveis().some((i) => folhas[i].adesivos.length > 0);
+  }
+
+  function estiloAd(s, el) {
+    el.style.left = `${s.x - s.w / 2}px`;
+    el.style.top = `${s.y - s.h / 2}px`;
+    el.style.width = `${s.w}px`;
+    el.style.height = `${s.h}px`;
+    el.style.transform = `rotate(${s.rot}deg)`;
+    el.firstChild.style.transform = s.espelho ? 'scaleX(-1)' : '';
+  }
+
+  function desenharAdesivos() {
+    camadaAd.textContent = '';
+    elsAd.clear();
+    indicesVisiveis().forEach((i) => {
+      folhas[i].adesivos.forEach((s) => {
+        const el = document.createElement('div');
+        el.className = 'adesivo';
+        const img = document.createElement('img');
+        img.alt = '';
+        img.draggable = false;
+        img.src = s.src;
+        el.appendChild(img);
+        el.dataset.id = s.id;
+        el.addEventListener('pointerdown', (e) => aoApertarAdesivo(e, s.id));
+        camadaAd.appendChild(el);
+        elsAd.set(s.id, el);
+        estiloAd(s, el);
+      });
+    });
+    atualizarSel();
+  }
+
+  function atualizarEl(s) {
+    const el = elsAd.get(s.id);
+    if (el) estiloAd(s, el);
+  }
+
+  function atualizarSel() {
+    const achado = editandoAd && !apagandoAd ? achar(selecionadoAd) : null;
+    if (!achado) {
+      selAd.hidden = true;
+      barAd.hidden = true;
+      return;
+    }
+    const s = achado.s;
+    selAd.style.left = `${s.x - s.w / 2}px`;
+    selAd.style.top = `${s.y - s.h / 2}px`;
+    selAd.style.width = `${s.w}px`;
+    selAd.style.height = `${s.h}px`;
+    selAd.style.transform = `rotate(${s.rot}deg)`;
+    selAd.hidden = false;
+
+    const t = (s.rot * Math.PI) / 180;
+    const alturaCaixa = Math.abs(s.w * Math.sin(t)) + Math.abs(s.h * Math.cos(t));
+    barAd.hidden = false;
+    const lb = barAd.offsetWidth;
+    const ab = barAd.offsetHeight;
+    let topo = s.y + alturaCaixa / 2 + 14;
+    if (topo + ab > ALTURA - 4) topo = s.y - alturaCaixa / 2 - 52 - ab;
+    barAd.style.left = `${limitar(s.x - lb / 2, 4, LARGURA - lb - 4)}px`;
+    barAd.style.top = `${limitar(topo, 4, ALTURA - ab - 4)}px`;
+  }
+
+  function paraPalco(e) {
+    const r = $('palco').getBoundingClientRect();
+    const esc = r.width / LARGURA || 1;
+    return { x: (e.clientX - r.left) / esc, y: (e.clientY - r.top) / esc };
+  }
+
+  const fotoAd = () => JSON.stringify(folhas.map((f) => f.adesivos));
+
+  function guardarAd(antes) {
+    histAd.push(antes);
+    if (histAd.length > 100) histAd.shift();
+    refAd.length = 0;
+  }
+
+  function mutarAd(fn) {
+    const antes = fotoAd();
+    fn();
+    if (fotoAd() !== antes) guardarAd(antes);
+  }
+
+  function restaurarAd(json) {
+    const arr = JSON.parse(json);
+    folhas.forEach((f, i) => { f.adesivos = arr[i] || []; });
+    if (!achar(selecionadoAd)) selecionadoAd = null;
+    desenharAdesivos();
+  }
+
+  function desfazerAd() {
+    if (!histAd.length) return;
+    refAd.push(fotoAd());
+    restaurarAd(histAd.pop());
+  }
+
+  function refazerAd() {
+    if (!refAd.length) return;
+    histAd.push(fotoAd());
+    restaurarAd(refAd.pop());
+  }
+
+  function entrarEdicaoAd() {
+    if (editandoAd) return;
+    editandoAd = true;
+    camadaAd.classList.add('editando');
+    okAd.hidden = false;
+    okAd.disabled = false;
+    botoesBloqueados().forEach((b) => {
+      b.inert = b.id !== 'btnApagar' && b.id !== 'btnAdesivos';
+    });
+    [taEsq, taDir].forEach((t) => { t.inert = true; });
+    histAd.length = 0;
+    refAd.length = 0;
+  }
+
+  function sairEdicaoAd() {
+    editandoAd = false;
+    apagandoAd = false;
+    selecionadoAd = null;
+    camadaAd.classList.remove('editando', 'apagando');
+    okAd.hidden = true;
+    botoesBloqueados().forEach((b) => { b.inert = false; });
+    [taEsq, taDir].forEach((t) => { t.inert = false; });
+    histAd.length = 0;
+    refAd.length = 0;
+    atualizarSel();
+    $('btnAdesivos').focus();
+  }
+
+  function selecionarAd(id) {
+    selecionadoAd = id;
+    atualizarSel();
+  }
+
+  function carregarImagem(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('imagem inválida'));
+      img.src = url;
+    });
+  }
+
+  function paraBlob(canvas, tipo, qualidade) {
+    return new Promise((resolve) => canvas.toBlob(resolve, tipo, qualidade));
+  }
+
+  async function prepararImagem(arquivo) {
+    const urlOriginal = URL.createObjectURL(arquivo);
+    try {
+      const img = await carregarImagem(urlOriginal);
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      if (!w || !h) throw new Error('imagem inválida');
+      const maior = Math.max(w, h);
+      if (arquivo.size <= LIMITE_BYTES_AD && maior <= 2400) {
+        return { blob: arquivo, url: urlOriginal, w, h };
+      }
+      const k = Math.min(1, 1600 / maior);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(w * k));
+      canvas.height = Math.max(1, Math.round(h * k));
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      let blob = await paraBlob(canvas, arquivo.type === 'image/jpeg' ? 'image/jpeg' : 'image/png', 0.92);
+      if (blob && blob.size > LIMITE_BYTES_AD) blob = await paraBlob(canvas, 'image/webp', 0.9);
+      if (!blob || blob.size === 0 || blob.size > LIMITE_BYTES_AD || !TIPOS_AD.includes(blob.type)) {
+        throw new Error('imagem grande demais');
+      }
+      URL.revokeObjectURL(urlOriginal);
+      return { blob, url: URL.createObjectURL(blob), w: canvas.width, h: canvas.height };
+    } catch (erro) {
+      URL.revokeObjectURL(urlOriginal);
+      throw erro;
+    }
+  }
+
+  function paginaAlvoAd() {
+    return ultimoFoco === taDir && folhas[esq] ? esq : esq - 1;
+  }
+
+  async function adicionarArquivos(arquivos) {
+    entrarEdicaoAd();
+    apagandoAd = false;
+    camadaAd.classList.remove('apagando');
+    for (const arquivo of arquivos) {
+      if (!TIPOS_AD.includes(arquivo.type)) {
+        avisarFolha('use imagens PNG, JPEG ou WebP.', 3000);
+        continue;
+      }
+      const indice = paginaAlvoAd();
+      const folha = folhas[indice];
+      if (!folha) {
+        avisarFolha('não foi possível adicionar o adesivo.', 3000);
+        break;
+      }
+      if (folha.adesivos.length >= LIMITE_AD) {
+        avisarFolha(`limite de ${LIMITE_AD} adesivos por folha.`, 3000);
+        break;
+      }
+      let pronto;
+      try {
+        pronto = await prepararImagem(arquivo);
+      } catch (_) {
+        avisarFolha('não foi possível abrir essa imagem.', 3000);
+        continue;
+      }
+      if (!editandoAd) {
+        URL.revokeObjectURL(pronto.url);
+        return;
+      }
+      pendentesAd.set(pronto.url, pronto.blob);
+      inserirAdesivo(pronto.url, pronto.w, pronto.h, indice);
+    }
+  }
+
+  function inserirAdesivo(src, largura, altura, indice) {
+    const folha = folhas[indice];
+    if (!folha) return;
+    const k = Math.min(2, LADO_INICIAL / Math.max(largura, altura));
+    const desloc = (folha.adesivos.length % 6) * 18;
+    const s = limparAdesivo({
+      id: novoId(),
+      src,
+      x: areaAd().centros[indice === esq - 1 ? 0 : 1] + desloc,
+      y: 380 + desloc,
+      w: largura * k,
+      h: altura * k,
+      rot: 0,
+      espelho: false,
+    });
+    mutarAd(() => { folha.adesivos.push(s); });
+    selecionadoAd = s.id;
+    desenharAdesivos();
+  }
+
+  const CHAVE_RECENTES = 'cher-journal:adesivos-recentes';
+  const MAX_RECENTES = 3;
+  const popRecentes = $('adRecentes');
+  let temporizadorRecentes = null;
+
+  function lerRecentes() {
+    try {
+      const lista = JSON.parse(localStorage.getItem(CHAVE_RECENTES) || '[]');
+      return Array.isArray(lista)
+        ? lista.filter((u) => typeof u === 'string' && u.startsWith('https://')).slice(0, MAX_RECENTES)
+        : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function guardarRecentes(lista) {
+    try {
+      localStorage.setItem(CHAVE_RECENTES, JSON.stringify(lista.slice(0, MAX_RECENTES)));
+    } catch (_) {
+    }
+  }
+
+  function registrarRecente(url) {
+    if (typeof url !== 'string' || !url.startsWith('https://')) return;
+    guardarRecentes([url, ...lerRecentes().filter((u) => u !== url)]);
+  }
+
+  function esquecerRecente(url) {
+    guardarRecentes(lerRecentes().filter((u) => u !== url));
+    desenharRecentes();
+  }
+
+  function desenharRecentes() {
+    const lista = lerRecentes();
+    popRecentes.textContent = '';
+    lista.forEach((url) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'adrec-op';
+      b.setAttribute('aria-label', 'usar adesivo recente');
+      const img = document.createElement('img');
+      img.alt = '';
+      img.draggable = false;
+      img.addEventListener('error', () => esquecerRecente(url));
+      img.src = url;
+      b.appendChild(img);
+      b.addEventListener('click', () => usarRecente(url, img));
+      popRecentes.appendChild(b);
+    });
+    if (!lista.length) popRecentes.hidden = true;
+  }
+
+  function mostrarRecentes() {
+    clearTimeout(temporizadorRecentes);
+    if (!lerRecentes().length || enviandoAd) return;
+    desenharRecentes();
+    popRecentes.hidden = !lerRecentes().length;
+  }
+
+  function esconderRecentes(atraso = 250) {
+    clearTimeout(temporizadorRecentes);
+    temporizadorRecentes = setTimeout(() => { popRecentes.hidden = true; }, atraso);
+  }
+
+  function usarRecente(url, img) {
+    const largura = img.naturalWidth;
+    const altura = img.naturalHeight;
+    if (!largura || !altura) return;
+    const indice = paginaAlvoAd();
+    const folha = folhas[indice];
+    if (!folha) return;
+    if (folha.adesivos.length >= LIMITE_AD) {
+      avisarFolha(`limite de ${LIMITE_AD} adesivos por folha.`, 3000);
+      return;
+    }
+    popRecentes.hidden = true;
+    entrarEdicaoAd();
+    apagandoAd = false;
+    camadaAd.classList.remove('apagando');
+    registrarRecente(url);
+    inserirAdesivo(url, largura, altura, indice);
+  }
+
+  const btnAdesivosEl = $('btnAdesivos');
+  btnAdesivosEl.addEventListener('mouseenter', mostrarRecentes);
+  btnAdesivosEl.addEventListener('mouseleave', () => esconderRecentes());
+  btnAdesivosEl.addEventListener('focus', mostrarRecentes);
+  btnAdesivosEl.addEventListener('blur', () => esconderRecentes(150));
+  popRecentes.addEventListener('mouseenter', () => clearTimeout(temporizadorRecentes));
+  popRecentes.addEventListener('mouseleave', () => esconderRecentes());
+  popRecentes.addEventListener('focusin', () => clearTimeout(temporizadorRecentes));
+  popRecentes.addEventListener('focusout', () => esconderRecentes(150));
+
+  async function enviarAdesivo(blob) {
+    const resposta = await requisicao('/api/uploads/adesivo', {
+      method: 'POST',
+      headers: { 'Content-Type': blob.type },
+      body: blob,
+    });
+    if (!resposta.url) throw new Error('resposta inválida');
+    return resposta.url;
+  }
+
+  async function confirmarAdesivos() {
+    if (enviandoAd) return;
+    selecionadoAd = null;
+    atualizarSel();
+    const usados = new Set();
+    folhas.forEach((f) => f.adesivos.forEach((a) => {
+      if (a.src.startsWith('blob:')) usados.add(a.src);
+    }));
+    if (usados.size) {
+      enviandoAd = true;
+      okAd.disabled = true;
+      avisarFolha('enviando adesivos...', 15000);
+      try {
+        for (const url of usados) {
+          const blob = pendentesAd.get(url);
+          if (!blob) throw new Error('arquivo perdido');
+          const nova = await enviarAdesivo(blob);
+          await carregarImagem(nova).catch(() => null);
+          folhas.forEach((f) => f.adesivos.forEach((a) => { if (a.src === url) a.src = nova; }));
+          pendentesAd.delete(url);
+          URL.revokeObjectURL(url);
+          registrarRecente(nova);
+        }
+      } catch (erro) {
+        if (erro.message !== 'sessão encerrada') {
+          avisarFolha(erro.status === 413 ? 'imagem grande demais.' : 'não foi possível enviar o adesivo. tente de novo.', 3500);
+        }
+        okAd.disabled = false;
+        enviandoAd = false;
+        desenharAdesivos();
+        return;
+      }
+      avisoFolha.hidden = true;
+      enviandoAd = false;
+    }
+    pendentesAd.forEach((_, url) => URL.revokeObjectURL(url));
+    pendentesAd.clear();
+    desenharAdesivos();
+    sairEdicaoAd();
+  }
+
+  function aoApertarAdesivo(e, id) {
+    if (!editandoAd || e.button !== 0) return;
+    e.preventDefault();
+    if (apagandoAd) {
+      removerAd(id);
+      return;
+    }
+    selecionarAd(id);
+    comecarGesto(e, 'mover');
+  }
+
+  function reatribuirPagina(s) {
+    const achado = achar(s.id);
+    if (!achado) return;
+    const alvo = esq - 1 + (s.x >= areaAd().divisa && folhas[esq] ? 1 : 0);
+    const destino = folhas[alvo];
+    if (destino === achado.folha) return;
+    if (destino.adesivos.length >= LIMITE_AD) return;
+    achado.folha.adesivos.splice(achado.folha.adesivos.indexOf(s), 1);
+    destino.adesivos.push(s);
+  }
+
+  function comecarGesto(e, tipo, alca) {
+    const achado = achar(selecionadoAd);
+    if (!achado || e.button !== 0) return;
+    e.preventDefault();
+    const s = achado.s;
+    const antes = fotoAd();
+    const ini = { ...s };
+    const p0 = paraPalco(e);
+    const t = (ini.rot * Math.PI) / 180;
+    const cos = Math.cos(t);
+    const sin = Math.sin(t);
+    const sx = alca ? Number(alca.dataset.sx) : 0;
+    const sy = alca ? Number(alca.dataset.sy) : 0;
+    const ancora = {
+      x: ini.x - (sx * ini.w / 2) * cos + (sy * ini.h / 2) * sin,
+      y: ini.y - (sx * ini.w / 2) * sin - (sy * ini.h / 2) * cos,
+    };
+
+    const mover = (ev) => {
+      if (ev.pointerId !== e.pointerId) return;
+      const p = paraPalco(ev);
+      if (tipo === 'mover') {
+        [s.x, s.y] = centroValido(ini.x + p.x - p0.x, ini.y + p.y - p0.y);
+      } else if (tipo === 'girar') {
+        let graus = (Math.atan2(p.y - ini.y, p.x - ini.x) * 180) / Math.PI + 90;
+        if (ev.shiftKey) graus = Math.round(graus / 15) * 15;
+        s.rot = normalizarGraus(graus);
+      } else {
+        const vx = p.x - ancora.x;
+        const vy = p.y - ancora.y;
+        const lx = vx * cos + vy * sin;
+        const ly = -vx * sin + vy * cos;
+        let k = (lx * sx * ini.w + ly * sy * ini.h) / (ini.w * ini.w + ini.h * ini.h);
+        const menor = Math.min(ini.w, ini.h);
+        const maior = Math.max(ini.w, ini.h);
+        k = limitar(k, LADO_MIN / menor, LADO_MAX / maior);
+        s.w = ini.w * k;
+        s.h = ini.h * k;
+        const ax = (sx * s.w) / 2;
+        const ay = (sy * s.h) / 2;
+        s.x = ancora.x + ax * cos - ay * sin;
+        s.y = ancora.y + ax * sin + ay * cos;
+      }
+      atualizarEl(s);
+      atualizarSel();
+    };
+
+    const fim = (ev) => {
+      if (ev.pointerId !== e.pointerId) return;
+      window.removeEventListener('pointermove', mover);
+      window.removeEventListener('pointerup', fim);
+      window.removeEventListener('pointercancel', fim);
+      Object.assign(s, limparAdesivo(s));
+      if (tipo === 'mover') reatribuirPagina(s);
+      if (fotoAd() !== antes) guardarAd(antes);
+      desenharAdesivos();
+    };
+
+    window.addEventListener('pointermove', mover);
+    window.addEventListener('pointerup', fim);
+    window.addEventListener('pointercancel', fim);
+  }
+
+  selAd.querySelectorAll('[data-gesto]').forEach((alca) => {
+    alca.addEventListener('pointerdown', (e) => comecarGesto(e, alca.dataset.gesto, alca));
+  });
+
+  function removerAd(id) {
+    mutarAd(() => {
+      for (const f of folhas) {
+        const i = f.adesivos.findIndex((a) => a.id === id);
+        if (i >= 0) {
+          f.adesivos.splice(i, 1);
+          break;
+        }
+      }
+    });
+    if (selecionadoAd === id) selecionadoAd = null;
+    desenharAdesivos();
+  }
+
+  function acaoAdesivo(acao) {
+    const achado = achar(selecionadoAd);
+    if (!achado) return;
+    const { s, folha } = achado;
+    const lista = folha.adesivos;
+    if (acao === 'espelhar') {
+      mutarAd(() => { s.espelho = !s.espelho; });
+    } else if (acao === 'duplicar') {
+      if (lista.length >= LIMITE_AD) {
+        avisarFolha(`limite de ${LIMITE_AD} adesivos por folha.`, 3000);
+        return;
+      }
+      const copia = limparAdesivo({
+        ...s,
+        id: novoId(),
+        x: centroValido(s.x + 24, s.y + 24)[0],
+        y: centroValido(s.x + 24, s.y + 24)[1],
+      });
+      mutarAd(() => { lista.push(copia); });
+      selecionadoAd = copia.id;
+    } else if (acao === 'frente') {
+      mutarAd(() => { lista.push(...lista.splice(lista.indexOf(s), 1)); });
+    } else if (acao === 'tras') {
+      mutarAd(() => { lista.unshift(...lista.splice(lista.indexOf(s), 1)); });
+    }
+    desenharAdesivos();
+  }
+
+  barAd.addEventListener('pointerdown', (e) => e.preventDefault());
+  barAd.querySelectorAll('[data-acao]').forEach((b) =>
+    b.addEventListener('click', () => acaoAdesivo(b.dataset.acao)));
+
+  let rolagemAntes = null;
+  let temporizadorRolagem = null;
+  camadaAd.addEventListener('wheel', (e) => {
+    if (!editandoAd || apagandoAd) return;
+    const alvo = e.target.closest('.adesivo');
+    if (!alvo) return;
+    const achado = achar(alvo.dataset.id);
+    if (!achado) return;
+    e.preventDefault();
+    if (selecionadoAd !== achado.s.id) selecionarAd(achado.s.id);
+    if (rolagemAntes === null) rolagemAntes = fotoAd();
+    const s = achado.s;
+    const delta = e.deltaY || e.deltaX;
+    if (e.shiftKey) {
+      s.rot = normalizarGraus(s.rot - Math.sign(delta) * 5);
+    } else {
+      const k = limitar(Math.exp(-delta * 0.0015), LADO_MIN / Math.min(s.w, s.h), LADO_MAX / Math.max(s.w, s.h));
+      s.w *= k;
+      s.h *= k;
+    }
+    Object.assign(s, limparAdesivo(s));
+    atualizarEl(s);
+    atualizarSel();
+    clearTimeout(temporizadorRolagem);
+    temporizadorRolagem = setTimeout(() => {
+      if (rolagemAntes !== null && fotoAd() !== rolagemAntes) guardarAd(rolagemAntes);
+      rolagemAntes = null;
+    }, 400);
+  }, { passive: false });
+
+  $('btnAdesivos').addEventListener('click', () => {
+    popRecentes.hidden = true;
+    arqAd.value = '';
+    arqAd.click();
+  });
+
+  arqAd.addEventListener('change', () => {
+    const arquivos = Array.from(arqAd.files || []);
+    arqAd.value = '';
+    if (arquivos.length) adicionarArquivos(arquivos);
+  });
+
+  // sem escolher arquivo: permite ajustar os adesivos já colocados
+  arqAd.addEventListener('cancel', () => {
+    if (!editandoAd && temAdesivosVisiveis()) entrarEdicaoAd();
+  });
+
+  $('btnApagar').addEventListener('click', () => {
+    if (!editandoAd) {
+      if (!temAdesivosVisiveis()) {
+        avisarFolha('não há adesivos nesta folha.', 2500);
+        return;
+      }
+      entrarEdicaoAd();
+    }
+    if (selecionadoAd) {
+      removerAd(selecionadoAd);
+      return;
+    }
+    apagandoAd = !apagandoAd;
+    camadaAd.classList.toggle('apagando', apagandoAd);
+    atualizarSel();
+    if (apagandoAd) avisarFolha('clique no adesivo que deseja apagar.', 2500);
+  });
+
+  okAd.addEventListener('click', confirmarAdesivos);
+
+  $('cena').addEventListener('pointerdown', (e) => {
+    if (!editandoAd || !selecionadoAd) return;
+    if (e.target.closest('.adesivo, .adsel, .adbar, #btnApagar, #btnAdesivos, #btnOkAdesivos')) return;
+    selecionadoAd = null;
+    atualizarSel();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!editandoAd) return;
+    if (e.ctrlKey || e.metaKey) {
+      if (e.altKey) return;
+      const tecla = e.key.toLowerCase();
+      if (tecla === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        desfazerAd();
+      } else if (tecla === 'y' || (tecla === 'z' && e.shiftKey)) {
+        e.preventDefault();
+        refazerAd();
+      }
+      return;
+    }
+    if (e.key === 'Escape') {
+      selecionadoAd = null;
+      apagandoAd = false;
+      camadaAd.classList.remove('apagando');
+      atualizarSel();
+      return;
+    }
+    const achado = achar(selecionadoAd);
+    if (!achado || apagandoAd) return;
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      removerAd(achado.s.id);
+      return;
+    }
+    const passo = e.shiftKey ? 10 : 1;
+    const dir = { ArrowLeft: [-passo, 0], ArrowRight: [passo, 0], ArrowUp: [0, -passo], ArrowDown: [0, passo] }[e.key];
+    if (dir) {
+      e.preventDefault();
+      mutarAd(() => {
+        [achado.s.x, achado.s.y] = centroValido(achado.s.x + dir[0], achado.s.y + dir[1]);
+        reatribuirPagina(achado.s);
+      });
+      desenharAdesivos();
+    }
+  });
+
+  [taEsq, taDir].forEach((t) => t.addEventListener('focusin', () => { ultimoFoco = t; }));
 
   carregar();
 })();

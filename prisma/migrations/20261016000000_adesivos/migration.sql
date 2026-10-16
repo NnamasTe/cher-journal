@@ -1,0 +1,1 @@
+ALTER TABLE "Pagina" ADD COLUMN "adesivos" JSONB NOT NULL DEFAULT '[]';
