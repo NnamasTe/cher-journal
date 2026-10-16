@@ -209,6 +209,7 @@
     taEsq.contentEditable = fe ? 'true' : 'false';
     taDir.contentEditable = fd ? 'true' : 'false';
     desenharAdesivos();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(conferirTexto);
   }
 
   async function carregar() {
@@ -763,16 +764,27 @@
     opsPapel.forEach((b) => b.classList.toggle('selecionado', b.dataset.papel === papel));
   }
 
-  function textoCabe() {
+  function textoCabe(adesivosPorFolha) {
     const palco = $('palco');
     return folhas.every((f, i) => {
+      const par = i - (i % 2);
+      const blocos = [par, par + 1]
+        .filter((k) => folhas[k])
+        .flatMap((k) => (adesivosPorFolha ? adesivosPorFolha[k] : folhas[k].adesivos))
+        .map((a) => blocoColisao(a));
+      const caixa = document.createElement('div');
+      caixa.className = `caixa-folha ${i % 2 === 0 ? 'texto-esq' : 'texto-dir'}`;
+      caixa.style.visibility = 'hidden';
+      const col = document.createElement('div');
+      col.className = 'colisao';
       const medidor = document.createElement('div');
-      medidor.className = `texto-folha ${i % 2 === 0 ? 'texto-esq' : 'texto-dir'}`;
-      medidor.style.visibility = 'hidden';
+      medidor.className = 'texto-folha';
       medidor.innerHTML = htmlDoTexto(f.texto);
-      palco.appendChild(medidor);
+      caixa.append(col, medidor);
+      palco.appendChild(caixa);
+      montarColisao(caixa, col, blocos);
       const cabe = medidor.scrollHeight <= medidor.clientHeight + 1;
-      medidor.remove();
+      caixa.remove();
       return cabe;
     });
   }
@@ -782,7 +794,12 @@
     const anterior = papel;
     papel = novo;
     aplicarPapel();
-    if (!textoCabe()) {
+    // onde cada adesivo ficará no papel novo (o centro é reajustado à área do papel)
+    const ajustados = folhas.map((f) => f.adesivos.map((a) => {
+      const [x, y] = centroValido(a.x, a.y);
+      return { ...a, x: arred(x), y: arred(y) };
+    }));
+    if (!textoCabe(ajustados)) {
       papel = anterior;
       aplicarPapel();
       avisarFolha('o texto não cabe nesse papel.', 3000);
@@ -926,6 +943,201 @@
     return indicesVisiveis().some((i) => folhas[i].adesivos.length > 0);
   }
 
+  const FOLGA_COLISAO = 6;
+  const VAO_MIN = 56;
+  const PAD_FOLHA = 4;
+  const NS_SVG = 'http://www.w3.org/2000/svg';
+
+  const caixaEsq = $('caixaEsq');
+  const caixaDir = $('caixaDir');
+  const colEsq = $('colEsq');
+  const colDir = $('colDir');
+  const verColisao = params.has('colisao');
+  let svgColisao = null;
+
+  function blocoColisao(s) {
+    const t = (s.rot * Math.PI) / 180;
+    const cos = Math.cos(t);
+    const sin = Math.sin(t);
+    const mw = s.w / 2 + FOLGA_COLISAO;
+    const mh = s.h / 2 + FOLGA_COLISAO;
+    return [[-mw, -mh], [mw, -mh], [mw, mh], [-mw, mh]]
+      .map(([dx, dy]) => [s.x + dx * cos - dy * sin, s.y + dx * sin + dy * cos]);
+  }
+
+  function extensaoNaFaixa(pts, ya, yb) {
+    const eps = 0.01;
+    let min = Infinity;
+    let max = -Infinity;
+    const usar = (x) => {
+      if (x < min) min = x;
+      if (x > max) max = x;
+    };
+    for (let i = 0; i < pts.length; i++) {
+      const [x1, y1] = pts[i];
+      const [x2, y2] = pts[(i + 1) % pts.length];
+      if (y1 > ya + eps && y1 < yb - eps) usar(x1);
+      for (const y of [ya + eps, yb - eps]) {
+        if ((y1 < y && y2 > y) || (y1 > y && y2 < y)) usar(x1 + ((x2 - x1) * (y - y1)) / (y2 - y1));
+      }
+    }
+    return min <= max ? [min, max] : null;
+  }
+
+  function calcularFaixas(caixa, blocos) {
+    const largura = caixa.offsetWidth;
+    const x0 = caixa.offsetLeft;
+    const y0 = caixa.offsetTop;
+    const linhas = Math.floor(caixa.offsetHeight / LINHA);
+    const ini0 = PAD_FOLHA;
+    const fim0 = largura - PAD_FOLHA;
+
+    const textoADireita = blocos.map((pts) => {
+      const xs = pts.map((p) => p[0] - x0);
+      return fim0 - Math.max(...xs) >= Math.min(...xs) - ini0;
+    });
+
+    const porLinha = [];
+    for (let r = 0; r < linhas; r++) {
+      const ya = y0 + r * LINHA;
+      const yb = ya + LINHA;
+      let ini = ini0;
+      let fim = fim0;
+      let tocou = false;
+      blocos.forEach((pts, i) => {
+        const ext = extensaoNaFaixa(pts, ya, yb);
+        if (!ext) return;
+        const mn = ext[0] - x0;
+        const mx = ext[1] - x0;
+        if (mx <= ini0 || mn >= fim0) return;
+        tocou = true;
+        if (textoADireita[i]) ini = Math.max(ini, mx);
+        else fim = Math.min(fim, mn);
+      });
+      if (!tocou) {
+        porLinha.push([0, 0]);
+      } else if (fim - ini < VAO_MIN) {
+        porLinha.push([largura, 0]);
+      } else {
+        porLinha.push([ini > ini0 ? Math.ceil(ini) : 0, fim < fim0 ? Math.ceil(largura - fim) : 0]);
+      }
+    }
+
+    const faixas = [];
+    porLinha.forEach(([esq, dir], r) => {
+      if (!esq && !dir) return;
+      const ultima = faixas[faixas.length - 1];
+      if (ultima && ultima.ate === r && ultima.esq === esq && ultima.dir === dir) ultima.ate = r + 1;
+      else faixas.push({ de: r, ate: r + 1, esq, dir });
+    });
+    return faixas;
+  }
+
+  function montarColisao(caixa, col, blocos) {
+    const faixas = calcularFaixas(caixa, blocos);
+    const assinatura = JSON.stringify(faixas);
+    if (col.dataset.assinatura === assinatura) return;
+    col.dataset.assinatura = assinatura;
+    col.textContent = '';
+    let fundo = 0;
+    faixas.forEach((f) => {
+      const topo = f.de * LINHA;
+      const altura = (f.ate - f.de) * LINHA;
+      const margem = topo - fundo;
+      fundo = topo + altura;
+      let primeiro = true;
+      [['esq', f.esq], ['dir', f.dir]].forEach(([lado, largura]) => {
+        if (!largura) return;
+        const b = document.createElement('i');
+        b.className = `col-bloco col-${lado}`;
+        b.style.cssText = `width:${largura}px;height:${altura}px;margin-top:${margem}px;${primeiro ? 'clear:both;' : ''}`;
+        col.appendChild(b);
+        primeiro = false;
+      });
+    });
+  }
+
+  function blocosVisiveis() {
+    return indicesVisiveis().flatMap((i) => folhas[i].adesivos.map(blocoColisao));
+  }
+
+  function atualizarColisao() {
+    const blocos = blocosVisiveis();
+    montarColisao(caixaEsq, colEsq, blocos);
+    montarColisao(caixaDir, colDir, blocos);
+    if (verColisao) desenharColisao(blocos);
+  }
+
+  function desenharColisao(blocos) {
+    document.body.classList.add('colisao-ver');
+    if (!svgColisao) {
+      svgColisao = document.createElementNS(NS_SVG, 'svg');
+      svgColisao.setAttribute('class', 'colisao-debug');
+      svgColisao.setAttribute('viewBox', `0 0 ${LARGURA} ${ALTURA}`);
+      $('palco').appendChild(svgColisao);
+    }
+    svgColisao.textContent = '';
+    blocos.forEach((pts) => {
+      const poligono = document.createElementNS(NS_SVG, 'polygon');
+      poligono.setAttribute('points', pts.map((p) => p.join(',')).join(' '));
+      svgColisao.appendChild(poligono);
+    });
+  }
+
+  function excessoTexto() {
+    return [taEsq, taDir].reduce((total, ed) => total + Math.max(0, ed.scrollHeight - ed.clientHeight - 1), 0);
+  }
+
+  function aplicarSePossivel(s, novo, base) {
+    const antes = { x: s.x, y: s.y, w: s.w, h: s.h, rot: s.rot };
+    Object.assign(s, novo);
+    atualizarColisao();
+    if (excessoTexto() <= base) return true;
+    Object.assign(s, antes);
+    atualizarColisao();
+    return false;
+  }
+
+  function posicionarNovo(folha, s, x, y, escalas = [1]) {
+    const base = excessoTexto();
+    const a = areaAd();
+    const lado = folhas.indexOf(folha) === esq - 1 ? 0 : 1;
+    const xi = lado === 0 ? a.caixa.x1 : a.divisa;
+    const xf = lado === 0 ? a.divisa : a.caixa.x2;
+    const grade = [];
+    for (let gx = xi + 20; gx <= xf - 20; gx += 40) {
+      for (let gy = a.caixa.y1 + 20; gy <= a.caixa.y2 - 20; gy += 40) grade.push([gx, gy]);
+    }
+    grade.sort((p, q) => Math.hypot(p[0] - x, p[1] - y) - Math.hypot(q[0] - x, q[1] - y));
+    const candidatos = [[x, y], ...grade];
+    const w0 = s.w;
+    const h0 = s.h;
+    folha.adesivos.push(s);
+    for (const k of escalas) {
+      s.w = arred(Math.max(LADO_MIN, w0 * k));
+      s.h = arred(Math.max(LADO_MIN, h0 * k));
+      for (const [cx, cy] of candidatos) {
+        [s.x, s.y] = centroValido(cx, cy);
+        s.x = arred(s.x);
+        s.y = arred(s.y);
+        atualizarColisao();
+        if (excessoTexto() <= base) return true;
+      }
+    }
+    folha.adesivos.pop();
+    s.w = w0;
+    s.h = h0;
+    atualizarColisao();
+    return false;
+  }
+
+  const AVISO_SEM_ESPACO = 'o texto não cabe com o adesivo aí.';
+
+  function conferirTexto() {
+    if (!temAdesivosVisiveis() || editandoAd) return;
+    if (excessoTexto() > 0) avisarFolha('parte do texto ficou escondida pelos adesivos. ajuste-os.', 4500);
+  }
+
   function estiloAd(s, el) {
     el.style.left = `${s.x - s.w / 2}px`;
     el.style.top = `${s.y - s.h / 2}px`;
@@ -954,6 +1166,7 @@
         estiloAd(s, el);
       });
     });
+    atualizarColisao();
     atualizarSel();
   }
 
@@ -1137,13 +1350,18 @@
         return;
       }
       pendentesAd.set(pronto.url, pronto.blob);
-      inserirAdesivo(pronto.url, pronto.w, pronto.h, indice);
+      if (!inserirAdesivo(pronto.url, pronto.w, pronto.h, indice)) {
+        pendentesAd.delete(pronto.url);
+        URL.revokeObjectURL(pronto.url);
+        break;
+      }
     }
   }
 
+  // devolve false se não houver onde pôr o adesivo sem o texto passar do fim da folha
   function inserirAdesivo(src, largura, altura, indice) {
     const folha = folhas[indice];
-    if (!folha) return;
+    if (!folha) return false;
     const k = Math.min(2, LADO_INICIAL / Math.max(largura, altura));
     const desloc = (folha.adesivos.length % 6) * 18;
     const s = limparAdesivo({
@@ -1156,9 +1374,15 @@
       rot: 0,
       espelho: false,
     });
-    mutarAd(() => { folha.adesivos.push(s); });
+    let coube = false;
+    mutarAd(() => { coube = posicionarNovo(folha, s, s.x, s.y, [1, 0.6]); });
+    if (!coube) {
+      avisarFolha('não há espaço livre nessa folha para o adesivo.', 3500);
+      return false;
+    }
     selecionadoAd = s.id;
     desenharAdesivos();
+    return true;
   }
 
   const CHAVE_RECENTES = 'cher-journal:adesivos-recentes';
@@ -1345,16 +1569,22 @@
       x: ini.x - (sx * ini.w / 2) * cos + (sy * ini.h / 2) * sin,
       y: ini.y - (sx * ini.w / 2) * sin - (sy * ini.h / 2) * cos,
     };
+    // colisão: o adesivo só vai para onde o texto ainda couber na folha
+    const base = excessoTexto();
+    let valido = { x: s.x, y: s.y, w: s.w, h: s.h, rot: s.rot };
 
     const mover = (ev) => {
       if (ev.pointerId !== e.pointerId) return;
       const p = paraPalco(ev);
+      let tentativas;
       if (tipo === 'mover') {
-        [s.x, s.y] = centroValido(ini.x + p.x - p0.x, ini.y + p.y - p0.y);
+        const [nx, ny] = centroValido(ini.x + p.x - p0.x, ini.y + p.y - p0.y);
+        // se o movimento inteiro bater no texto, tenta deslizar só na horizontal ou na vertical
+        tentativas = [{ x: nx, y: ny }, { x: nx, y: s.y }, { x: s.x, y: ny }];
       } else if (tipo === 'girar') {
         let graus = (Math.atan2(p.y - ini.y, p.x - ini.x) * 180) / Math.PI + 90;
         if (ev.shiftKey) graus = Math.round(graus / 15) * 15;
-        s.rot = normalizarGraus(graus);
+        tentativas = [{ rot: normalizarGraus(graus) }];
       } else {
         const vx = p.x - ancora.x;
         const vy = p.y - ancora.y;
@@ -1364,13 +1594,15 @@
         const menor = Math.min(ini.w, ini.h);
         const maior = Math.max(ini.w, ini.h);
         k = limitar(k, LADO_MIN / menor, LADO_MAX / maior);
-        s.w = ini.w * k;
-        s.h = ini.h * k;
-        const ax = (sx * s.w) / 2;
-        const ay = (sy * s.h) / 2;
-        s.x = ancora.x + ax * cos - ay * sin;
-        s.y = ancora.y + ax * sin + ay * cos;
+        const w = ini.w * k;
+        const h = ini.h * k;
+        const ax = (sx * w) / 2;
+        const ay = (sy * h) / 2;
+        tentativas = [{ w, h, x: ancora.x + ax * cos - ay * sin, y: ancora.y + ax * sin + ay * cos }];
       }
+      const aplicada = tentativas.findIndex((t) => aplicarSePossivel(s, t, base));
+      if (aplicada >= 0) valido = { x: s.x, y: s.y, w: s.w, h: s.h, rot: s.rot };
+      if (aplicada !== 0) avisarFolha(AVISO_SEM_ESPACO, 1500);
       atualizarEl(s);
       atualizarSel();
     };
@@ -1381,6 +1613,8 @@
       window.removeEventListener('pointerup', fim);
       window.removeEventListener('pointercancel', fim);
       Object.assign(s, limparAdesivo(s));
+      atualizarColisao();
+      if (excessoTexto() > base) Object.assign(s, limparAdesivo({ ...s, ...valido }));
       if (tipo === 'mover') reatribuirPagina(s);
       if (fotoAd() !== antes) guardarAd(antes);
       desenharAdesivos();
@@ -1421,13 +1655,13 @@
         avisarFolha(`limite de ${LIMITE_AD} adesivos por folha.`, 3000);
         return;
       }
-      const copia = limparAdesivo({
-        ...s,
-        id: novoId(),
-        x: centroValido(s.x + 24, s.y + 24)[0],
-        y: centroValido(s.x + 24, s.y + 24)[1],
-      });
-      mutarAd(() => { lista.push(copia); });
+      const copia = limparAdesivo({ ...s, id: novoId() });
+      let coube = false;
+      mutarAd(() => { coube = posicionarNovo(folha, copia, s.x + 24, s.y + 24); });
+      if (!coube) {
+        avisarFolha('não há espaço livre nessa folha para duplicar.', 3000);
+        return;
+      }
       selecionadoAd = copia.id;
     } else if (acao === 'frente') {
       mutarAd(() => { lista.push(...lista.splice(lista.indexOf(s), 1)); });
@@ -1454,14 +1688,16 @@
     if (rolagemAntes === null) rolagemAntes = fotoAd();
     const s = achado.s;
     const delta = e.deltaY || e.deltaX;
+    let novo;
     if (e.shiftKey) {
-      s.rot = normalizarGraus(s.rot - Math.sign(delta) * 5);
+      novo = { rot: normalizarGraus(s.rot - Math.sign(delta) * 5) };
     } else {
       const k = limitar(Math.exp(-delta * 0.0015), LADO_MIN / Math.min(s.w, s.h), LADO_MAX / Math.max(s.w, s.h));
-      s.w *= k;
-      s.h *= k;
+      novo = { w: s.w * k, h: s.h * k };
     }
+    if (!aplicarSePossivel(s, novo, excessoTexto())) avisarFolha(AVISO_SEM_ESPACO, 1500);
     Object.assign(s, limparAdesivo(s));
+    atualizarColisao();
     atualizarEl(s);
     atualizarSel();
     clearTimeout(temporizadorRolagem);
@@ -1483,7 +1719,6 @@
     if (arquivos.length) adicionarArquivos(arquivos);
   });
 
-  // sem escolher arquivo: permite ajustar os adesivos já colocados
   arqAd.addEventListener('cancel', () => {
     if (!editandoAd && temAdesivosVisiveis()) entrarEdicaoAd();
   });
@@ -1548,8 +1783,9 @@
     if (dir) {
       e.preventDefault();
       mutarAd(() => {
-        [achado.s.x, achado.s.y] = centroValido(achado.s.x + dir[0], achado.s.y + dir[1]);
-        reatribuirPagina(achado.s);
+        const [nx, ny] = centroValido(achado.s.x + dir[0], achado.s.y + dir[1]);
+        if (aplicarSePossivel(achado.s, { x: nx, y: ny }, excessoTexto())) reatribuirPagina(achado.s);
+        else avisarFolha(AVISO_SEM_ESPACO, 1500);
       });
       desenharAdesivos();
     }

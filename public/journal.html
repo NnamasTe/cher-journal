@@ -25,10 +25,16 @@
         <span class="data-folha" id="dataFolha"></span>
       </main>
 
-      <div class="texto-folha texto-esq" id="textoEsq" contenteditable="false" spellcheck="false"
-           role="textbox" aria-multiline="true" aria-label="folha da esquerda"></div>
-      <div class="texto-folha texto-dir" id="textoDir" contenteditable="false" spellcheck="false"
-           role="textbox" aria-multiline="true" aria-label="folha da direita"></div>
+      <div class="caixa-folha texto-esq" id="caixaEsq">
+        <div class="colisao" id="colEsq" aria-hidden="true"></div>
+        <div class="texto-folha" id="textoEsq" contenteditable="false" spellcheck="false"
+             role="textbox" aria-multiline="true" aria-label="folha da esquerda"></div>
+      </div>
+      <div class="caixa-folha texto-dir" id="caixaDir">
+        <div class="colisao" id="colDir" aria-hidden="true"></div>
+        <div class="texto-folha" id="textoDir" contenteditable="false" spellcheck="false"
+             role="textbox" aria-multiline="true" aria-label="folha da direita"></div>
+      </div>
       <span class="aviso-folha" id="avisoFolha" role="status" aria-live="polite" hidden></span>
 
       <div class="adesivos-camada" id="adCamada"></div>

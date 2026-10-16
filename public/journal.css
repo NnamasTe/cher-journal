@@ -249,6 +249,62 @@ body {
 .texto-esq { left: 251px; width: 406px; }
 .texto-dir { left: 705px; width: 407px; }
 
+.caixa-folha {
+  position: absolute;
+  top: 78px;
+  height: 612px;
+  overflow: hidden;
+}
+
+.caixa-folha > .texto-folha {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.colisao {
+  height: 0;
+  pointer-events: none;
+}
+
+.col-bloco {
+  display: block;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  pointer-events: none;
+  shape-outside: border-box;
+}
+
+.col-esq { float: left; }
+.col-dir { float: right; }
+
+.colisao-debug {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 1366px;
+  height: 768px;
+  pointer-events: none;
+}
+
+.colisao-debug polygon {
+  fill: rgba(200, 40, 40, 0.18);
+  stroke: rgba(200, 40, 40, 0.8);
+  stroke-width: 1;
+}
+
+.colisao-ver .col-bloco {
+  background: rgba(40, 90, 200, 0.14);
+  outline: 1px solid rgba(40, 90, 200, 0.6);
+  outline-offset: -1px;
+}
+
 .aviso-folha {
   position: absolute;
   left: 50%;
