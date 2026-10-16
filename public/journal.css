@@ -6,7 +6,7 @@ body {
 
 .tela-journal {
   --s: 1;
-  --cinza-num: #bababa; 
+  --cinza-num: #bababa;
 }
 
 .cena {
@@ -36,7 +36,6 @@ body {
   -webkit-user-drag: none;
   pointer-events: none;
 }
-
 
 .folhas {
   position: absolute;
@@ -145,11 +144,11 @@ body {
   overflow: hidden;
   background: transparent;
   color: #333;
-  font-family: "Gaegu", "Patrick Hand", "Comic Sans MS", "Comic Neue", cursive;
-  font-weight: 700;
+  font-family: "Patrick Hand", "Comic Sans MS", "Comic Neue", cursive;
+  font-weight: 400;
   font-size: 20px;
   line-height: 37px;
-  text-align: justify;
+  text-align: left;
   overflow-wrap: anywhere;
   caret-color: #333;
 }
@@ -206,5 +205,54 @@ body {
 }
 
 .anot-aviso[hidden] {
+  display: none;
+}
+
+.texto-folha {
+  position: absolute;
+  top: 78px;
+  height: 612px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 4px;
+  border: 0;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: #333;
+  font-family: "Patrick Hand", "Comic Sans MS", "Comic Neue", cursive;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 34px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  caret-color: #333;
+}
+
+.texto-esq { left: 251px; width: 406px; }
+.texto-dir { left: 705px; width: 407px; }
+
+.aviso-folha {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 6px 18px;
+  border-radius: 18px;
+  background: #9d9268;
+  color: #f3ecd2;
+  font-family: "Courier New", Courier, "Liberation Mono", Cousine, monospace;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.aviso-folha[hidden] {
   display: none;
 }
