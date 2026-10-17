@@ -99,8 +99,7 @@
     return { curto: `${base} (...)`, resumido: true };
   }
 
-  function criarItem(journal) {
-    const item = document.createElement('button');
+    function criarItem(journal, indice) {    const item = document.createElement('button');
     item.type = 'button';
     item.className = 'journal';
 
@@ -115,10 +114,16 @@
       journal.qttd_Paginas === 1 ? '1 página' : `${journal.qttd_Paginas} páginas`;
     meta.append(data, paginas);
 
-    const capa = document.createElement('img');
+        const capa = document.createElement('img');
     capa.className = 'capa';
     capa.alt = '';
-    capa.loading = 'lazy';
+    capa.decoding = 'async';
+    if (indice < 4) {
+      capa.loading = 'eager';
+      capa.fetchPriority = 'high';
+    } else {
+      capa.loading = 'lazy';
+    }
     capa.src = journal.capa;
     capa.addEventListener('error', () => { capa.src = '/capa-padrao.png'; }, { once: true });
 
