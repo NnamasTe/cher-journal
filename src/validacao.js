@@ -32,6 +32,24 @@ function numeroEntre(valor, min, max) {
   return typeof valor === 'number' && Number.isFinite(valor) && valor >= min && valor <= max ? valor : null;
 }
 
+const CORTE_MAX = 0.95;
+const FOLGA_CORTE = 0.001;
+
+function corteValido(c) {
+  const zero = { esq: 0, dir: 0, cima: 0, baixo: 0 };
+  if (c === undefined || c === null) return zero;
+  if (typeof c !== 'object' || Array.isArray(c)) return null;
+  const saida = {};
+  for (const lado of ['esq', 'dir', 'cima', 'baixo']) {
+    const v = c[lado] === undefined ? 0 : numeroEntre(c[lado], 0, CORTE_MAX);
+    if (v === null) return null;
+    saida[lado] = v;
+  }
+  if (saida.esq + saida.dir > CORTE_MAX + FOLGA_CORTE) return null;
+  if (saida.cima + saida.baixo > CORTE_MAX + FOLGA_CORTE) return null;
+  return saida;
+}
+
 function listaDeAdesivos(valor, maxItens = 20) {
   if (!Array.isArray(valor) || valor.length > maxItens) return null;
   const saida = [];
@@ -47,8 +65,12 @@ function listaDeAdesivos(valor, maxItens = 20) {
     const rot = numeroEntre(a.rot, -360, 360);
     if (!id || ids.has(id) || !src || x === null || y === null || w === null || h === null || rot === null) return null;
     if (typeof a.espelho !== 'boolean') return null;
+    const opacidade = a.opacidade === undefined ? 100 : numeroEntre(a.opacidade, 0, 100);
+    if (opacidade === null) return null;
+    const corte = corteValido(a.corte);
+    if (!corte) return null;
     ids.add(id);
-    saida.push({ id, src, x, y, w, h, rot, espelho: a.espelho });
+    saida.push({ id, src, x, y, w, h, rot, espelho: a.espelho, opacidade, corte });
   }
   return saida;
 }

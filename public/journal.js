@@ -1418,6 +1418,7 @@
       folhas[i].adesivos.forEach((s) => {
         const el = document.createElement('div');
         el.className = 'adesivo';
+        el.style.touchAction = 'none';
         const img = document.createElement('img');
         img.alt = '';
         img.draggable = false;
@@ -1484,7 +1485,6 @@
     const dx = e.clientX - (r.left + r.width / 2);
     const dy = e.clientY - (r.top + r.height / 2);
     if (girado) {
-      // cena girada 90° no sentido horário: x local = dy, y local = -dx
       return { x: dy / esc + LARGURA / 2, y: -dx / esc + ALTURA / 2 };
     }
     return { x: dx / esc + LARGURA / 2, y: dy / esc + ALTURA / 2 };
@@ -1836,10 +1836,17 @@
     destino.adesivos.push(s);
   }
 
+  function capturarToque(el, e) {
+    try {
+      if (el && el.setPointerCapture) el.setPointerCapture(e.pointerId);
+    } catch (_) { }
+  }
+
   function comecarCorte(e, alca) {
     const achado = achar(selecionadoAd);
     if (!achado || e.button !== 0) return;
     e.preventDefault();
+    capturarToque(alca, e);
     const s = achado.s;
     const antes = fotoAd();
     const ini = { x: s.x, y: s.y, w: s.w, h: s.h, rot: s.rot, corte: limparCorte(s.corte) };
@@ -1975,7 +1982,11 @@
     window.addEventListener('pointercancel', fim);
   }
 
+  // touch-action: none garante que o toque nas alças (inclusive as de corte) não vire rolagem/zoom
+  selAd.style.touchAction = 'none';
+  camadaAd.style.touchAction = 'none';
   selAd.querySelectorAll('[data-gesto]').forEach((alca) => {
+    alca.style.touchAction = 'none';
     alca.addEventListener('pointerdown', (e) => comecarGesto(e, alca.dataset.gesto, alca));
   });
 
@@ -2087,7 +2098,6 @@
     if (arquivos.length) adicionarArquivos(arquivos);
   });
 
-  // sem escolher arquivo: permite ajustar os adesivos já colocados
   arqAd.addEventListener('cancel', () => {
     if (!editandoAd && temAdesivosVisiveis()) entrarEdicaoAd();
   });
