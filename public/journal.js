@@ -1185,7 +1185,7 @@
     return indicesVisiveis().some((i) => folhas[i].adesivos.length > 0);
   }
 
-  const FOLGA_COLISAO = 1;
+  const FOLGA_COLISAO = 2;
   const ESCALA_COLISAO = 0.8;
   const VAO_MIN = 56;
   const PAD_FOLHA = 4;
