@@ -206,13 +206,18 @@
     while (folhas.length < quantidade) await criarFolha();
   }
 
+  let rotaGravacao = null;
+
   async function enviarTexto(folha, texto, textura, adesivos) {
     const corpo = JSON.stringify({ [CAMPO_TEXTO]: texto, textura_Pag: textura, adesivos: JSON.parse(adesivos) });
     const id = encodeURIComponent(folha.id);
+    const rotas = [`${urlPaginas}/${id}`, `/api/paginas/${id}`];
+    const tentativas = rotaGravacao === null ? [0, 1] : [rotaGravacao];
     let ultimo = null;
-    for (const rota of [`${urlPaginas}/${id}`, `/api/paginas/${id}`]) {
+    for (const n of tentativas) {
       try {
-        await requisicao(rota, { method: 'PATCH', body: corpo });
+        await requisicao(rotas[n], { method: 'PATCH', body: corpo });
+        rotaGravacao = n;
         return;
       } catch (erro) {
         if (erro.status !== 404 && erro.status !== 405) throw erro;
