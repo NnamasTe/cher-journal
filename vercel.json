@@ -1,8 +1,14 @@
 {
+  "regions": ["gru1"],
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" }
+  ],
+  "headers": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api"
+      "source": "/(.*)\\.(png|jpg|jpeg|webp|svg|woff2)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=604800" }
+      ]
     }
   ]
 }
