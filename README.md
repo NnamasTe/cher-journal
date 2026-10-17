@@ -57,6 +57,7 @@ O arquivo `.env` está no `.gitignore` e **não** sobe. Suas senhas e endereços
 1. Na Vercel, **Add New → Project** e importe o repositório do GitHub.
 2. Em **Environment Variables**, cadastre as quatro variáveis do `.env`: `DATABASE_URL`, `DIRECT_URL`, `SITE_PASSWORD_HASH` e `SESSION_SECRET`.
 3. Clique em **Deploy**. O build já cria as tabelas sozinho (`vercel-build`).
+4. No dashboard do projeto, habilite **Speed Insights**. A integração HTML já está incluída nas páginas e carrega o script de métricas apenas fora de localhost e dos previews do GitHub Codespaces.
 
 ## API (resumo)
 
