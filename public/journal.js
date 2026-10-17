@@ -169,7 +169,32 @@
     };
   }
 
+  function novaFolhaLocal() {
+    return {
+      id: null,
+      data: new Date().toISOString(),
+      texto: '',
+      salvo: '',
+      textura: papel,
+      texturaSalva: papel,
+      adesivos: [],
+      adesivosSalvo: serialAd([]),
+    };
+  }
+
+  async function sincronizarNovas() {
+    for (const f of folhas) {
+      if (f.id != null) continue;
+      const resposta = await requisicao(urlPaginas, {
+        method: 'POST',
+        body: JSON.stringify({ data: f.data, textura_Pag: f.textura }),
+      });
+      f.id = (resposta.pagina || resposta).id;
+    }
+  }
+
   async function criarFolha() {
+    await sincronizarNovas();
     const resposta = await requisicao(urlPaginas, {
       method: 'POST',
       body: JSON.stringify({ data: new Date().toISOString(), textura_Pag: papel }),
@@ -248,15 +273,17 @@
     }
   }
 
-  function registrar(indice, antes, depois, separar = false) {
+  function registrar(mudancas, separar = false) {
     const agora = Date.now();
     const ultimo = desfazer[desfazer.length - 1];
-    if (!separar && ultimo && ultimo.indice === indice && agora - ultimo.t < 700 &&
-        Math.abs(depois.length - ultimo.antes.length) < 60) {
-      ultimo.depois = depois;
+    const mesmas = ultimo && ultimo.itens.length === mudancas.length &&
+      ultimo.itens.every((it, n) => it.indice === mudancas[n].indice);
+    if (!separar && mesmas && agora - ultimo.t < 700 &&
+        Math.abs(mudancas[0].depois.length - ultimo.itens[0].antes.length) < 60) {
+      ultimo.itens.forEach((it, n) => { it.depois = mudancas[n].depois; });
       ultimo.t = agora;
     } else {
-      desfazer.push({ indice, antes, depois, t: agora });
+      desfazer.push({ itens: mudancas, t: agora });
       if (desfazer.length > 300) desfazer.shift();
     }
     refazer.length = 0;
@@ -277,15 +304,12 @@
     const novo = lerCampo(ed);
     if (novo === folha.texto) return;
 
-    if (ed.scrollHeight > ed.clientHeight + 1) {
-      ed.innerHTML = htmlDoTexto(folha.texto);
-      ed.focus();
-      caretNoFim(ed);
-      avisarFolha('a folha está cheia.');
+    if (excedeFolha(ed)) {
+      transbordar(ed, indice, novo, separar);
       return;
     }
 
-    registrar(indice, folha.texto, novo, separar);
+    registrar([{ indice, antes: folha.texto, depois: novo }], separar);
     folha.texto = novo;
   }
 
@@ -320,6 +344,171 @@
     const s = window.getSelection();
     s.removeAllRanges();
     s.addRange(r);
+  }
+
+  function excedeFolha(ed) {
+    if (ed.scrollHeight > ed.clientHeight + 1) return true;
+    if (!terminaEmQuebra(ed)) return false;
+    return linhaDoFim(ed) - 1 >= Math.floor(ed.clientHeight / LINHA);
+  }
+  const LIMITE_TRANSBORDO = 400;
+  const ALCANCE_PALAVRA = 40;
+
+  function criarMedidor(indice) {
+    const par = indice - (indice % 2);
+    const blocos = [par, par + 1]
+      .filter((k) => folhas[k])
+      .flatMap((k) => folhas[k].adesivos)
+      .map((a) => blocoColisao(a));
+    const caixa = document.createElement('div');
+    caixa.className = `caixa-folha ${indice % 2 === 0 ? 'texto-esq' : 'texto-dir'}`;
+    caixa.style.visibility = 'hidden';
+    const col = document.createElement('div');
+    col.className = 'colisao';
+    const medidor = document.createElement('div');
+    medidor.className = 'texto-folha';
+    caixa.append(col, medidor);
+    $('palco').appendChild(caixa);
+    montarColisao(caixa, col, blocos);
+    return {
+      cabe(html) {
+        medidor.innerHTML = `${html}<span style="display:inline-block;width:1px;height:1px"></span>`;
+        return medidor.scrollHeight <= medidor.clientHeight + 1;
+      },
+      remover() { caixa.remove(); },
+    };
+  }
+
+  function dividirHtml(html, posicao) {
+    const raiz = document.createElement('div');
+    raiz.innerHTML = html;
+    const [no, deslocamento] = localizar(raiz, posicao);
+    const r = document.createRange();
+    r.setStart(no, deslocamento);
+    r.setEnd(raiz, raiz.childNodes.length);
+    const cauda = document.createElement('div');
+    cauda.appendChild(r.extractContents());
+    return [sanitizar(raiz.innerHTML), sanitizar(cauda.innerHTML)];
+  }
+
+  function pontoDeCorte(medidor, html) {
+    const raiz = document.createElement('div');
+    raiz.innerHTML = html;
+    const texto = raiz.textContent;
+    let lo = 0;
+    let hi = texto.length - 1;
+    while (lo < hi) {
+      const meio = Math.ceil((lo + hi) / 2);
+      if (medidor.cabe(dividirHtml(html, meio)[0])) lo = meio;
+      else hi = meio - 1;
+    }
+    let k = lo;
+    if (texto[k] === '\n') return k + 1;
+    if (k > 0 && !/\s/.test(texto[k - 1]) && !/\s/.test(texto[k])) {
+      const ate = texto.slice(0, k);
+      const espaco = Math.max(ate.lastIndexOf(' '), ate.lastIndexOf('\n'));
+      if (espaco >= 0 && k - espaco <= ALCANCE_PALAVRA) k = espaco + 1;
+    }
+    return k;
+  }
+
+  function paraTexto(html) {
+    const t = document.createElement('div');
+    t.innerHTML = html;
+    return t.textContent === '' ? '' : MARCA + sanitizar(html);
+  }
+
+  function posicaoDoCaret(ed) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    const r = sel.getRangeAt(0);
+    if (!ed.contains(r.startContainer)) return null;
+    return medir(ed, r.startContainer, r.startOffset);
+  }
+
+  function colocarCaret(ed, posicao) {
+    const [no, deslocamento] = localizar(ed, posicao);
+    const r = document.createRange();
+    r.setStart(no, deslocamento);
+    r.collapse(true);
+    const s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(r);
+  }
+
+  function transbordar(ed, indice, novo, separar) {
+    const textosAntes = folhas.map((f) => f.texto);
+    const totalAntes = folhas.length;
+    const htmls = folhas.map((f) => htmlDoTexto(f.texto));
+    htmls[indice] = htmlDoTexto(novo);
+
+    let cursor = { i: indice, pos: posicaoDoCaret(ed) };
+    let i = indice;
+    let cortes = 0;
+    let cheia = false;
+
+    while (cortes < LIMITE_TRANSBORDO) {
+      const medidor = criarMedidor(i);
+      let k = 0;
+      let partes = null;
+      try {
+        if (!medidor.cabe(htmls[i])) {
+          k = pontoDeCorte(medidor, htmls[i]);
+          if (k > 0) partes = dividirHtml(htmls[i], k);
+          else cheia = true;
+        }
+      } finally {
+        medidor.remover();
+      }
+      if (cheia || !partes) break;
+
+      if (!folhas[i + 1]) {
+        folhas.push(novaFolhaLocal());
+        htmls.push('');
+      }
+      const [cabeca, cauda] = partes;
+      const ladoTexto = document.createElement('div');
+      ladoTexto.innerHTML = cabeca;
+      const levaCursor = cursor.i === i && cursor.pos !== null &&
+        (cursor.pos > k || (cursor.pos === k && ladoTexto.textContent.endsWith('\n')));
+
+      htmls[i] = cabeca;
+      htmls[i + 1] = cauda + htmls[i + 1];
+      if (levaCursor) cursor = { i: i + 1, pos: cursor.pos - k };
+      cortes += 1;
+      i += 1;
+    }
+
+    if (cheia || cortes >= LIMITE_TRANSBORDO) {
+      folhas.length = totalAntes;
+      ed.innerHTML = htmlDoTexto(textosAntes[indice]);
+      ed.focus();
+      caretNoFim(ed);
+      avisarFolha('a folha está cheia.');
+      return;
+    }
+
+    if (cortes === 0) {
+      registrar([{ indice, antes: folhas[indice].texto, depois: novo }], separar);
+      folhas[indice].texto = novo;
+      return;
+    }
+
+    const mudancas = [];
+    for (let j = indice; j <= i; j++) {
+      const depois = paraTexto(htmls[j]);
+      mudancas.push({ indice: j, antes: textosAntes[j] === undefined ? '' : textosAntes[j], depois });
+      folhas[j].texto = depois;
+    }
+    registrar(mudancas, separar);
+
+    if (cursor.pos !== null) esq = cursor.i % 2 === 0 ? cursor.i + 1 : cursor.i;
+    desenharFolhas();
+    if (cursor.pos !== null) {
+      const alvo = cursor.i % 2 === 0 ? taEsq : taDir;
+      alvo.focus();
+      colocarCaret(alvo, cursor.pos);
+    }
   }
 
   function linhaDoFim(ed) {
@@ -399,13 +588,15 @@
     const entrada = de.pop();
     if (!entrada) return;
     para.push(entrada);
-    const folha = folhas[entrada.indice];
-    if (!folha) return;
-    folha.texto = entrada[campo];
+    const principal = entrada.itens[0];
+    if (!folhas[principal.indice]) return;
+    entrada.itens.forEach((it) => {
+      if (folhas[it.indice]) folhas[it.indice].texto = it[campo];
+    });
     if (desfazer.length) desfazer[desfazer.length - 1].t = 0; 
-    esq = entrada.indice % 2 === 0 ? entrada.indice + 1 : entrada.indice;
+    esq = principal.indice % 2 === 0 ? principal.indice + 1 : principal.indice;
     desenharFolhas();
-    const ta = entrada.indice % 2 === 0 ? taEsq : taDir;
+    const ta = principal.indice % 2 === 0 ? taEsq : taDir;
     ta.focus();
     caretNoFim(ta);
   }
@@ -444,7 +635,8 @@
   }
 
   function folhaPendente(f) {
-    return f.texto !== f.salvo || f.textura !== f.texturaSalva || serialAd(f.adesivos) !== f.adesivosSalvo;
+    return f.id == null || f.texto !== f.salvo || f.textura !== f.texturaSalva ||
+      serialAd(f.adesivos) !== f.adesivosSalvo;
   }
 
   function haAlteracoes() {
@@ -460,6 +652,7 @@
     }
     ocupado = true;
     try {
+      await sincronizarNovas();
       for (const folha of pendentes) {
         const texto = folha.texto;
         const textura = folha.textura;
