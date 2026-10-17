@@ -3,7 +3,7 @@
   "short_name": "cher journal",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "landscape",
+  "orientation": "portrait",
   "background_color": "#e8d1a7",
   "theme_color": "#733015",
   "icons": [
