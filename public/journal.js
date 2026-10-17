@@ -261,7 +261,6 @@
     taEsq.contentEditable = fe ? 'true' : 'false';
     taDir.contentEditable = fd ? 'true' : 'false';
     desenharAdesivos();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(conferirTexto);
   }
 
   async function carregar() {
@@ -1186,7 +1185,7 @@
   }
 
   const FOLGA_COLISAO = 4;
-  const ESCALA_COLISAO = 0.9;
+  const ESCALA_COLISAO = 1;
   const VAO_MIN = 56;
   const PAD_FOLHA = 4;
   const NS_SVG = 'http://www.w3.org/2000/svg';
@@ -1375,11 +1374,6 @@
   }
 
   const AVISO_SEM_ESPACO = 'o texto não cabe com o adesivo aí.';
-
-  function conferirTexto() {
-    if (!temAdesivosVisiveis() || editandoAd) return;
-    if (excessoTexto() > 0) avisarFolha('parte do texto ficou escondida pelos adesivos. ajuste-os.', 4500);
-  }
 
   function estiloAd(s, el) {
     el.style.left = `${s.x - s.w / 2}px`;
