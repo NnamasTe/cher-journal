@@ -131,7 +131,7 @@
 
 .grade {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   column-gap: 33px;
   row-gap: 40px;
   align-items: start;
@@ -142,6 +142,7 @@
 .journal {
   display: block;
   width: 100%;
+  min-width: 0;
   padding: 0;
   border: 0;
   background: none;
@@ -180,9 +181,14 @@
   background: #3e1205;
 }
 
-.journal .titulo {
+.journal .titulo-caixa {
+  position: relative;
   display: block;
   margin-top: 6px;
+}
+
+.journal .titulo {
+  display: block;
   padding: 0 4px;
   overflow: hidden;
   font-size: 26px;
@@ -191,6 +197,40 @@
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.journal .titulo-cheio {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  z-index: 20;
+  box-sizing: border-box;
+  min-width: 100%;
+  width: max-content;
+  max-width: calc(100% + 40px);
+  padding: 4px 12px 6px;
+  border-radius: 14px;
+  background: var(--marrom);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  color: var(--marrom-escuro);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 30px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.journal .titulo-caixa.resumido:hover .titulo-cheio,
+.journal:focus-visible .titulo-caixa.resumido .titulo-cheio {
+  opacity: 1;
+}
+
+.journal .titulo-caixa.resumido:hover .titulo {
+  visibility: hidden;
 }
 
 .grade.editando .journal {
@@ -449,7 +489,7 @@
 
 @media (max-width: 1000px) {
   .grade {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .acao {
@@ -467,7 +507,8 @@
     font-size: 15px;
   }
 
-  .journal .titulo {
+  .journal .titulo,
+  .journal .titulo-cheio {
     font-size: 22px;
   }
 }
@@ -521,7 +562,7 @@
   }
 
   .grade {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 18px;
     row-gap: 28px;
   }
@@ -531,7 +572,8 @@
     font-size: 12.5px;
   }
 
-  .journal .titulo {
+  .journal .titulo,
+  .journal .titulo-cheio {
     font-size: 18px;
     line-height: 24px;
   }

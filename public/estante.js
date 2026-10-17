@@ -85,6 +85,19 @@
     el.aviso.textContent = estado.editando ? 'clique no journal que deseja editar' : '';
   }
 
+  const TITULO_MAX_INTEIRO = 18;
+  const TITULO_MAX_BASE = 13;
+
+  function resumirTitulo(texto) {
+    const limpo = texto.trim().replace(/\s+/g, ' ');
+    if (limpo.length <= TITULO_MAX_INTEIRO) return { curto: limpo, resumido: false };
+
+    const corte = limpo.slice(0, TITULO_MAX_BASE + 1);
+    const ultimoEspaco = corte.lastIndexOf(' ');
+    let base = ultimoEspaco > 0 ? corte.slice(0, ultimoEspaco) : corte.slice(0, TITULO_MAX_BASE);
+    base = base.replace(/[\s,.;:!?\-–—]+$/, '');
+    return { curto: `${base} (...)`, resumido: true };
+  }
 
   function criarItem(journal) {
     const item = document.createElement('button');
@@ -109,11 +122,25 @@
     capa.src = journal.capa;
     capa.addEventListener('error', () => { capa.src = '/capa-padrao.png'; }, { once: true });
 
+    const { curto, resumido } = resumirTitulo(journal.titulo);
+    const caixa = document.createElement('span');
+    caixa.className = 'titulo-caixa';
+
     const titulo = document.createElement('span');
     titulo.className = 'titulo';
-    titulo.textContent = journal.titulo;
+    titulo.textContent = curto;
+    caixa.append(titulo);
 
-    item.append(meta, capa, titulo);
+    if (resumido) {
+      titulo.setAttribute('aria-hidden', 'true');
+      const cheio = document.createElement('span');
+      cheio.className = 'titulo-cheio';
+      cheio.textContent = journal.titulo;
+      caixa.append(cheio);
+      caixa.classList.add('resumido');
+    }
+
+    item.append(meta, capa, caixa);
     item.addEventListener('click', () => {
       if (estado.editando) abrirEditar(journal);
       else window.location.href = `/journal.html?id=${encodeURIComponent(journal.id)}`;
