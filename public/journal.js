@@ -182,28 +182,41 @@
     };
   }
 
+  let sincronizacaoNovas = null;
+
   async function sincronizarNovas() {
-    for (const f of folhas) {
-      if (f.id != null) continue;
-      const resposta = await requisicao(urlPaginas, {
-        method: 'POST',
-        body: JSON.stringify({ data: f.data, textura_Pag: f.textura }),
-      });
-      f.id = (resposta.pagina || resposta).id;
+    if (sincronizacaoNovas) {
+      await sincronizacaoNovas;
+      if (folhas.some((f) => f.id == null)) return sincronizarNovas();
+      return;
+    }
+
+    const sincronizacao = (async () => {
+      for (const f of folhas) {
+        if (f.id != null) continue;
+        const resposta = await requisicao(urlPaginas, {
+          method: 'POST',
+          body: JSON.stringify({ data: f.data, textura_Pag: f.textura }),
+        });
+        f.id = (resposta.pagina || resposta).id;
+      }
+    })();
+    sincronizacaoNovas = sincronizacao;
+    try {
+      await sincronizacao;
+    } finally {
+      if (sincronizacaoNovas === sincronizacao) sincronizacaoNovas = null;
     }
   }
 
-  async function criarFolha() {
-    await sincronizarNovas();
-    const resposta = await requisicao(urlPaginas, {
-      method: 'POST',
-      body: JSON.stringify({ data: new Date().toISOString(), textura_Pag: papel }),
+  function sincronizarNovasEmSegundoPlano() {
+    sincronizarNovas().catch((erro) => {
+      if (erro.message !== 'sessão encerrada') avisarFolha('não foi possível criar as folhas.', 3500);
     });
-    folhas.push(montarFolha(resposta.pagina || resposta));
   }
 
-  async function garantirFolhas(quantidade) {
-    while (folhas.length < quantidade) await criarFolha();
+  function garantirFolhas(quantidade) {
+    while (folhas.length < quantidade) folhas.push(novaFolhaLocal());
   }
 
   let rotaGravacao = null;
@@ -267,12 +280,9 @@
       desenharFolhas();
 
       if (folhas.length < 2) {
-        try {
-          await garantirFolhas(2);
-        } catch (erro) {
-          if (erro.message !== 'sessão encerrada') avisarFolha('não foi possível criar as folhas.', 3500);
-        }
+        garantirFolhas(2);
         desenharFolhas();
+        sincronizarNovasEmSegundoPlano();
       }
     } catch (_) {
     }
@@ -625,15 +635,14 @@
     desenharFolhas();
   }
 
-  async function avancarFolha() {
+  function avancarFolha() {
     if (ocupado) return;
     ocupado = true;
     try {
-      await garantirFolhas(esq + 3);
+      garantirFolhas(esq + 3);
       esq += 2;
       desenharFolhas();
-    } catch (erro) {
-      if (erro.message !== 'sessão encerrada') avisarFolha('não foi possível criar a folha.', 3500);
+      sincronizarNovasEmSegundoPlano();
     } finally {
       ocupado = false;
     }
