@@ -224,8 +224,7 @@
   async function enviarTexto(folha, texto, textura, adesivos) {
     const corpo = JSON.stringify({ [CAMPO_TEXTO]: texto, textura_Pag: textura, adesivos: JSON.parse(adesivos) });
     const id = encodeURIComponent(folha.id);
-    const rotas = [`${urlPaginas}/${id}`, `/api/paginas/${id}`];    const tentativas = rotaGravacao === null ? [0, 1] : [rotaGravacao];
-    let ultimo = null;
+    const rotas = [`/api/paginas/${id}`];    let ultimo = null;
     for (const n of tentativas) {
       try {
         await requisicao(rotas[n], { method: 'PATCH', body: corpo });
