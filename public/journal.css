@@ -746,6 +746,16 @@ body.papel-bege .texto-folha {
   outline: none;
 }
 
+.adsel-corte { display: none; }
+.adsel.cortando .adsel-corte { display: block; }
+.adsel.cortando .adsel-haste,
+.adsel.cortando .adsel-alca:not(.adsel-corte) { display: none; }
+
+.adsel-alca.adsel-corte-esq { left: -8px; top: 50%; width: 14px; height: 38px; margin-top: -19px; border-radius: 7px; cursor: ew-resize; }
+.adsel-alca.adsel-corte-dir { right: -8px; top: 50%; width: 14px; height: 38px; margin-top: -19px; border-radius: 7px; cursor: ew-resize; }
+.adsel-alca.adsel-corte-cima { top: -8px; left: 50%; width: 38px; height: 14px; margin-left: -19px; border-radius: 7px; cursor: ns-resize; }
+.adsel-alca.adsel-corte-baixo { bottom: -8px; left: 50%; width: 38px; height: 14px; margin-left: -19px; border-radius: 7px; cursor: ns-resize; }
+
 .adbar {
   position: absolute;
   display: flex;
@@ -855,6 +865,11 @@ body.papel-bege .texto-folha {
 
 .adbar button:hover {
   background: #aaa076;
+}
+
+.adbar button[aria-pressed="true"] {
+  background: #f3ecd2;
+  color: #85582e;
 }
 
 .adbar button:focus {

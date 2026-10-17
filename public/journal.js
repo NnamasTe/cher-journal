@@ -1078,6 +1078,7 @@
   let apagandoAd = false;
   let enviandoAd = false;
   let selecionadoAd = null;
+  let cortando = null; // id do adesivo cujo modo de corte está ligado
   let ultimoFoco = taEsq;
   const pendentesAd = new Map();
   const histAd = [];
@@ -1094,6 +1095,25 @@
     let r = g % 360;
     if (r > 180) r -= 360;
     if (r <= -180) r += 360;
+    return r;
+  }
+
+  const CORTE_MAX = 0.95;
+
+  function limparCorte(c) {
+    const f = (v) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? limitar(n, 0, CORTE_MAX) : 0;
+    };
+    const r = { esq: f(c && c.esq), dir: f(c && c.dir), cima: f(c && c.cima), baixo: f(c && c.baixo) };
+    [['esq', 'dir'], ['cima', 'baixo']].forEach(([a, b]) => {
+      const soma = r[a] + r[b];
+      if (soma > CORTE_MAX) {
+        r[a] *= CORTE_MAX / soma;
+        r[b] *= CORTE_MAX / soma;
+      }
+    });
+    Object.keys(r).forEach((k) => { r[k] = Math.round(r[k] * 10000) / 10000; });
     return r;
   }
 
@@ -1114,6 +1134,7 @@
         0,
         100,
       )),
+      corte: limparCorte(a.corte),
     };
   }
 
@@ -1138,7 +1159,8 @@
     return indicesVisiveis().some((i) => folhas[i].adesivos.length > 0);
   }
 
-  const FOLGA_COLISAO = 6;
+  const FOLGA_COLISAO = 1;
+  const ESCALA_COLISAO = 0.8;
   const VAO_MIN = 56;
   const PAD_FOLHA = 4;
   const NS_SVG = 'http://www.w3.org/2000/svg';
@@ -1154,8 +1176,8 @@
     const t = (s.rot * Math.PI) / 180;
     const cos = Math.cos(t);
     const sin = Math.sin(t);
-    const mw = s.w / 2 + FOLGA_COLISAO;
-    const mh = s.h / 2 + FOLGA_COLISAO;
+    const mw = (s.w * ESCALA_COLISAO) / 2 + FOLGA_COLISAO;
+    const mh = (s.h * ESCALA_COLISAO) / 2 + FOLGA_COLISAO;
     return [[-mw, -mh], [mw, -mh], [mw, mh], [-mw, mh]]
       .map(([dx, dy]) => [s.x + dx * cos - dy * sin, s.y + dx * sin + dy * cos]);
   }
@@ -1284,7 +1306,7 @@
   }
 
   function aplicarSePossivel(s, novo, base) {
-    const antes = { x: s.x, y: s.y, w: s.w, h: s.h, rot: s.rot };
+    const antes = { x: s.x, y: s.y, w: s.w, h: s.h, rot: s.rot, corte: s.corte };
     Object.assign(s, novo);
     atualizarColisao();
     if (excessoTexto() <= base) return true;
@@ -1339,8 +1361,28 @@
     el.style.width = `${s.w}px`;
     el.style.height = `${s.h}px`;
     el.style.transform = `rotate(${s.rot}deg)`;
-    el.firstChild.style.transform = s.espelho ? 'scaleX(-1)' : '';
+    const img = el.firstChild;
+    img.style.transform = s.espelho ? 'scaleX(-1)' : '';
     el.style.opacity = String(s.opacidade / 100);
+
+    const c = s.corte;
+    if (c && (c.esq || c.dir || c.cima || c.baixo)) {
+      const esqTela = s.espelho ? c.dir : c.esq;
+      const iw = s.w / (1 - c.esq - c.dir);
+      const ih = s.h / (1 - c.cima - c.baixo);
+      Object.assign(img.style, {
+        position: 'absolute',
+        maxWidth: 'none',
+        width: `${iw}px`,
+        height: `${ih}px`,
+        left: `${-esqTela * iw}px`,
+        top: `${-c.cima * ih}px`,
+      });
+      el.style.overflow = 'hidden';
+    } else {
+      Object.assign(img.style, { position: '', maxWidth: '', width: '', height: '', left: '', top: '' });
+      el.style.overflow = '';
+    }
   }
 
   function desenharAdesivos() {
@@ -1387,6 +1429,10 @@
       return;
     }
     const s = achado.s;
+    const modoCorte = cortando === s.id;
+    selAd.classList.toggle('cortando', modoCorte);
+    const btnCorte = barAd.querySelector('[data-acao="cortar"]');
+    if (btnCorte) btnCorte.setAttribute('aria-pressed', String(modoCorte));
     mostrarOpacidade(s.opacidade);
     selAd.style.left = `${s.x - s.w / 2}px`;
     selAd.style.top = `${s.y - s.h / 2}px`;
@@ -1463,6 +1509,7 @@
     editandoAd = false;
     apagandoAd = false;
     selecionadoAd = null;
+    cortando = null;
     camadaAd.classList.remove('editando', 'apagando');
     okAd.hidden = true;
     botoesBloqueados().forEach((b) => { b.inert = false; });
@@ -1474,6 +1521,7 @@
   }
 
   function selecionarAd(id) {
+    if (cortando !== id) cortando = null;
     selecionadoAd = id;
     atualizarSel();
   }
@@ -1756,7 +1804,75 @@
     destino.adesivos.push(s);
   }
 
+  function comecarCorte(e, alca) {
+    const achado = achar(selecionadoAd);
+    if (!achado || e.button !== 0) return;
+    e.preventDefault();
+    const s = achado.s;
+    const antes = fotoAd();
+    const ini = { x: s.x, y: s.y, w: s.w, h: s.h, rot: s.rot, corte: limparCorte(s.corte) };
+    const lado = alca.dataset.lado;
+    const horizontal = lado === 'esq' || lado === 'dir';
+    const ladoImg = s.espelho && horizontal ? (lado === 'esq' ? 'dir' : 'esq') : lado;
+    const sinal = lado === 'esq' || lado === 'cima' ? 1 : -1;
+    const t = (ini.rot * Math.PI) / 180;
+    const cos = Math.cos(t);
+    const sin = Math.sin(t);
+    const c0 = ini.corte;
+    const tam0 = horizontal ? ini.w : ini.h;
+    const fatia = horizontal ? 1 - c0.esq - c0.dir : 1 - c0.cima - c0.baixo;
+    const px = tam0 / fatia;
+    const maxFora = Math.min(c0[ladoImg] * px, Math.max(0, LADO_MAX - tam0));
+    const maxDentro = Math.max(0, tam0 - Math.max(LADO_MIN, (1 - CORTE_MAX) * px));
+    const base = excessoTexto();
+    let valido = { x: s.x, y: s.y, w: s.w, h: s.h, corte: s.corte };
+
+    const mover = (ev) => {
+      if (ev.pointerId !== e.pointerId) return;
+      const p = paraPalco(ev);
+      const vx = p.x - ini.x;
+      const vy = p.y - ini.y;
+      const pos = horizontal ? vx * cos + vy * sin : -vx * sin + vy * cos;
+      const dentro = limitar(sinal * pos + tam0 / 2, -maxFora, maxDentro);
+      const desloc = (sinal * dentro) / 2;
+      const novo = {
+        w: arred(horizontal ? tam0 - dentro : ini.w),
+        h: arred(horizontal ? ini.h : tam0 - dentro),
+        x: arred(horizontal ? ini.x + desloc * cos : ini.x - desloc * sin),
+        y: arred(horizontal ? ini.y + desloc * sin : ini.y + desloc * cos),
+        corte: { ...c0, [ladoImg]: Math.max(0, c0[ladoImg] + dentro / px) },
+      };
+      if (aplicarSePossivel(s, novo, base)) {
+        valido = { x: s.x, y: s.y, w: s.w, h: s.h, corte: s.corte };
+      } else {
+        avisarFolha(AVISO_SEM_ESPACO, 1500);
+      }
+      atualizarEl(s);
+      atualizarSel();
+    };
+
+    const fim = (ev) => {
+      if (ev.pointerId !== e.pointerId) return;
+      window.removeEventListener('pointermove', mover);
+      window.removeEventListener('pointerup', fim);
+      window.removeEventListener('pointercancel', fim);
+      Object.assign(s, limparAdesivo(s));
+      atualizarColisao();
+      if (excessoTexto() > base) Object.assign(s, limparAdesivo({ ...s, ...valido }));
+      if (fotoAd() !== antes) guardarAd(antes);
+      desenharAdesivos();
+    };
+
+    window.addEventListener('pointermove', mover);
+    window.addEventListener('pointerup', fim);
+    window.addEventListener('pointercancel', fim);
+  }
+
   function comecarGesto(e, tipo, alca) {
+    if (tipo === 'cortar') {
+      comecarCorte(e, alca);
+      return;
+    }
     const achado = achar(selecionadoAd);
     if (!achado || e.button !== 0) return;
     e.preventDefault();
@@ -1773,7 +1889,6 @@
       x: ini.x - (sx * ini.w / 2) * cos + (sy * ini.h / 2) * sin,
       y: ini.y - (sx * ini.w / 2) * sin - (sy * ini.h / 2) * cos,
     };
-    // colisão: o adesivo só vai para onde o texto ainda couber na folha
     const base = excessoTexto();
     let valido = { x: s.x, y: s.y, w: s.w, h: s.h, rot: s.rot };
 
@@ -1783,7 +1898,6 @@
       let tentativas;
       if (tipo === 'mover') {
         const [nx, ny] = centroValido(ini.x + p.x - p0.x, ini.y + p.y - p0.y);
-        // se o movimento inteiro bater no texto, tenta deslizar só na horizontal ou na vertical
         tentativas = [{ x: nx, y: ny }, { x: nx, y: s.y }, { x: s.x, y: ny }];
       } else if (tipo === 'girar') {
         let graus = (Math.atan2(p.y - ini.y, p.x - ini.x) * 180) / Math.PI + 90;
@@ -1867,6 +1981,8 @@
         return;
       }
       selecionadoAd = copia.id;
+    } else if (acao === 'cortar') {
+      cortando = cortando === s.id ? null : s.id;
     } else if (acao === 'frente') {
       mutarAd(() => { lista.push(...lista.splice(lista.indexOf(s), 1)); });
     } else if (acao === 'tras') {

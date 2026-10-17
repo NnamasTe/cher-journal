@@ -6,6 +6,8 @@
   <meta name="robots" content="noindex, nofollow">
   <title>cher journal</title>
   <link rel="icon" type="image/png" sizes="40x40" href="/favicon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="stylesheet" href="/base.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -118,10 +120,15 @@
           <button class="adsel-alca adsel-ne" type="button" data-gesto="tamanho" data-sx="1" data-sy="-1" aria-label="redimensionar adesivo"></button>
           <button class="adsel-alca adsel-se" type="button" data-gesto="tamanho" data-sx="1" data-sy="1" aria-label="redimensionar adesivo"></button>
           <button class="adsel-alca adsel-sw" type="button" data-gesto="tamanho" data-sx="-1" data-sy="1" aria-label="redimensionar adesivo"></button>
+          <button class="adsel-alca adsel-corte adsel-corte-esq" type="button" data-gesto="cortar" data-lado="esq" aria-label="cortar lado esquerdo"></button>
+          <button class="adsel-alca adsel-corte adsel-corte-dir" type="button" data-gesto="cortar" data-lado="dir" aria-label="cortar lado direito"></button>
+          <button class="adsel-alca adsel-corte adsel-corte-cima" type="button" data-gesto="cortar" data-lado="cima" aria-label="cortar parte de cima"></button>
+          <button class="adsel-alca adsel-corte adsel-corte-baixo" type="button" data-gesto="cortar" data-lado="baixo" aria-label="cortar parte de baixo"></button>
         </div>
         <div class="adbar" id="adBar" role="toolbar" aria-label="ajustes do adesivo" hidden>
           <div class="adbar-acoes">
             <button type="button" data-acao="espelhar">espelhar</button>
+            <button type="button" data-acao="cortar" aria-pressed="false">cortar</button>
             <button type="button" data-acao="duplicar">duplicar</button>
             <button type="button" data-acao="frente">p/ frente</button>
             <button type="button" data-acao="tras">p/ trás</button>
