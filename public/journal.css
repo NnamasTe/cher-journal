@@ -26,6 +26,10 @@ body {
   transform-origin: center center;
 }
 
+.paisagem-forcada .palco {
+  transform: translate(-50%, -50%) rotate(90deg) scale(var(--s));
+}
+
 .cena-img {
   position: absolute;
   inset: 0;

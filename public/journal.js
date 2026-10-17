@@ -5,12 +5,37 @@
   const LARGURA = 1366;
   const ALTURA = 768;
 
+  const toqueGrosso = window.matchMedia('(pointer: coarse)');
+  let girado = false;
+  let escPalco = 1;
+
+  function emRetrato() {
+    const o = window.screen && window.screen.orientation;
+    if (o && o.type) return o.type.startsWith('portrait');
+    return window.screen.height > window.screen.width;
+  }
+
   function ajustarEscala() {
-    const s = Math.min(window.innerWidth / LARGURA, window.innerHeight / ALTURA);
+    girado = toqueGrosso.matches && emRetrato();
+    document.body.classList.toggle('paisagem-forcada', girado);
+    const s = girado
+      ? Math.min(window.innerHeight / LARGURA, window.innerWidth / ALTURA)
+      : Math.min(window.innerWidth / LARGURA, window.innerHeight / ALTURA);
+    escPalco = s;
     document.body.style.setProperty('--s', String(s));
   }
   window.addEventListener('resize', ajustarEscala);
+  window.addEventListener('orientationchange', ajustarEscala);
+  if (window.screen && window.screen.orientation) {
+    window.screen.orientation.addEventListener('change', ajustarEscala);
+  }
   ajustarEscala();
+
+  try {
+    if (window.screen.orientation && window.screen.orientation.lock) {
+      window.screen.orientation.lock('landscape').catch(() => {});
+    }
+  } catch (_) { }
 
   const params = new URLSearchParams(window.location.search);
   const journalId = params.get('id');
@@ -526,9 +551,10 @@
   function clicarNaLinha(e, ed, indice) {
     if (ed.contentEditable !== 'true' || e.button !== 0) return;
     const caixa = ed.getBoundingClientRect();
-    const escala = caixa.height / ed.offsetHeight || 1;
+    const escala = (girado ? caixa.width : caixa.height) / ed.offsetHeight || 1;
+    const yTela = girado ? caixa.right - e.clientX : e.clientY - caixa.top;
     const maxLinha = Math.floor(ed.clientHeight / LINHA) - 1;
-    const alvo = Math.min(maxLinha, Math.floor((e.clientY - caixa.top) / escala / LINHA));
+    const alvo = Math.min(maxLinha, Math.floor(yTela / escala / LINHA));
     const fim = linhaDoFim(ed);
     const quebra = terminaEmQuebra(ed);
     if (alvo < fim || (alvo === fim && !quebra)) return;
@@ -1454,8 +1480,14 @@
 
   function paraPalco(e) {
     const r = $('palco').getBoundingClientRect();
-    const esc = r.width / LARGURA || 1;
-    return { x: (e.clientX - r.left) / esc, y: (e.clientY - r.top) / esc };
+    const esc = escPalco || 1;
+    const dx = e.clientX - (r.left + r.width / 2);
+    const dy = e.clientY - (r.top + r.height / 2);
+    if (girado) {
+      // cena girada 90° no sentido horário: x local = dy, y local = -dx
+      return { x: dy / esc + LARGURA / 2, y: -dx / esc + ALTURA / 2 };
+    }
+    return { x: dx / esc + LARGURA / 2, y: dy / esc + ALTURA / 2 };
   }
 
   const fotoAd = () => JSON.stringify(folhas.map((f) => f.adesivos));
