@@ -171,11 +171,18 @@
     return ed.textContent === '' ? '' : MARCA + html;
   }
 
+  const SEM_PAUTA = '-sem-pauta';
   const PAPEIS = {
     padrao: '/journal-cena.png',
     espiral: '/journal-cena-espiral.png',
     bege: '/journal-cena-bege.png',
+    [`padrao${SEM_PAUTA}`]: '/journal-cena-sem-pauta.png',
+    [`espiral${SEM_PAUTA}`]: '/journal-cena-espiral-sem-pauta.png',
+    [`bege${SEM_PAUTA}`]: '/journal-cena-bege-sem-pauta.png',
   };
+  const tipoDoPapel = (chave) => chave.endsWith(SEM_PAUTA) ? chave.slice(0, -SEM_PAUTA.length) : chave;
+  const papelPautado = (chave) => !chave.endsWith(SEM_PAUTA);
+  const chaveDoPapel = (tipo, pautado) => (pautado ? tipo : tipo + SEM_PAUTA);
   let papel = 'padrao';
 
   function montarFolha(pagina) {
@@ -973,11 +980,22 @@
   const imgCena = document.querySelector('.cena-img');
   const opsPapel = Array.from(painelPapeis.querySelectorAll('[data-papel]'));
 
+  const chkPauta = $('chkPauta');
+
+  // se a imagem sem pauta de algum caderno ainda não existir no site,
+  // cai de volta na versão pautada em vez de deixar o fundo quebrado
+  imgCena.addEventListener('error', () => {
+    const reserva = PAPEIS[tipoDoPapel(papel)];
+    if (!imgCena.src.endsWith(reserva)) imgCena.src = reserva;
+  });
+
   function aplicarPapel() {
+    const tipo = tipoDoPapel(papel);
     imgCena.src = PAPEIS[papel];
-    document.body.classList.toggle('papel-espiral', papel === 'espiral');
-    document.body.classList.toggle('papel-bege', papel === 'bege');
-    opsPapel.forEach((b) => b.classList.toggle('selecionado', b.dataset.papel === papel));
+    document.body.classList.toggle('papel-espiral', tipo === 'espiral');
+    document.body.classList.toggle('papel-bege', tipo === 'bege');
+    opsPapel.forEach((b) => b.classList.toggle('selecionado', b.dataset.papel === tipo));
+    chkPauta.checked = papelPautado(papel);
   }
 
   function textoCabe(adesivosPorFolha) {
@@ -1010,7 +1028,6 @@
     const anterior = papel;
     papel = novo;
     aplicarPapel();
-    // onde cada adesivo ficará no papel novo (o centro é reajustado à área do papel)
     const ajustados = folhas.map((f) => f.adesivos.map((a) => {
       const [x, y] = centroValido(a.x, a.y);
       return { ...a, x: arred(x), y: arred(y) };
@@ -1034,7 +1051,7 @@
   }
 
   function abrirPapeis() {
-    Object.values(PAPEIS).forEach((src) => { new Image().src = src; });
+    opsPapel.forEach((b) => { new Image().src = PAPEIS[chaveDoPapel(b.dataset.papel, papelPautado(papel))]; });
     painelPapeis.hidden = false;
     travarFundo(true);
   }
@@ -1045,7 +1062,13 @@
     $('btnTipos').focus();
   }
 
-  opsPapel.forEach((b) => b.addEventListener('click', () => escolherPapel(b.dataset.papel)));
+  opsPapel.forEach((b) => b.addEventListener('click', () => {
+    escolherPapel(chaveDoPapel(b.dataset.papel, papelPautado(papel)));
+  }));
+  chkPauta.addEventListener('change', () => {
+    escolherPapel(chaveDoPapel(tipoDoPapel(papel), chkPauta.checked));
+    chkPauta.checked = papelPautado(papel);
+  });
   $('btnTipos').addEventListener('click', abrirPapeis);
   $('btnOkPapeis').addEventListener('click', fecharPapeis);
 
@@ -1087,7 +1110,7 @@
       argola: [640, 735],
     },
   };
-  const areaAd = () => PAPEL_AD[papel] || PAPEL_AD.padrao;
+  const areaAd = () => PAPEL_AD[tipoDoPapel(papel)] || PAPEL_AD.padrao;
 
   function centroValido(x, y) {
     const a = areaAd();
@@ -1103,7 +1126,7 @@
   let apagandoAd = false;
   let enviandoAd = false;
   let selecionadoAd = null;
-  let cortando = null; // id do adesivo cujo modo de corte está ligado
+  let cortando = null;
   let ultimoFoco = taEsq;
   const pendentesAd = new Map();
   const histAd = [];

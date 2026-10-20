@@ -591,6 +591,61 @@ body.papel-bege .texto-folha {
   user-select: none;
 }
 
+.papeis-subtitulo,
+.papeis-pauta {
+  position: absolute;
+  font-family: "Courier New", Courier, "Liberation Mono", Cousine, monospace;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 19px;
+  line-height: 28px;
+  color: #817647;
+  user-select: none;
+}
+
+.papeis-subtitulo {
+  left: 802px;
+  top: 303px;
+  pointer-events: none;
+}
+
+.papeis-pauta {
+  left: 802px;
+  top: 357px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.papeis-pauta input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border: 3px solid #817647;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.papeis-pauta input:checked {
+  background: #817647;
+  box-shadow: inset 0 0 0 3px #e7e7e5;
+}
+
+.papeis-pauta input:focus {
+  outline: none;
+}
+
+.papeis-pauta input:focus-visible {
+  outline: 3px solid rgba(74, 42, 26, 0.85);
+  outline-offset: 3px;
+}
+
 .papel-op {
   position: absolute;
   padding: 0;
