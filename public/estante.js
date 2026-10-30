@@ -446,5 +446,55 @@
     desenhar();
   });
 
+  function iniciarContador() {
+    const raiz = $('contador');
+    if (!raiz) return;
+
+    const alvo = new Date(raiz.dataset.alvo);
+    if (Number.isNaN(alvo.getTime())) {
+      raiz.hidden = true;
+      return;
+    }
+
+    const partes = Object.fromEntries(
+      new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).formatToParts(alvo).map((p) => [p.type, p.value]),
+    );
+    $('contadorDia').textContent = partes.day;
+    $('contadorMes').textContent = `${partes.month} de ${partes.year}`;
+
+    const l1 = $('contadorL1');
+    const l2 = $('contadorL2');
+    const DIA_MS = 24 * 60 * 60 * 1000;
+    let timer = null;
+
+    function atualizar() {
+      const resta = alvo.getTime() - Date.now();
+      if (resta > 0) {
+        const dias = Math.ceil(resta / DIA_MS);
+        l1.textContent = dias === 1 ? 'falta 1' : `faltam ${dias}`;
+        l2.textContent = dias === 1 ? 'dia!' : 'dias!';
+      } else if (resta > -DIA_MS) {
+        l1.textContent = 'chegou';
+        l2.textContent = 'o dia!';
+      } else {
+        l1.textContent = 'o dia';
+        l2.textContent = 'já passou';
+      }
+      clearTimeout(timer);
+      timer = setTimeout(atualizar, 60000 - (Date.now() % 60000) + 50);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) atualizar();
+    });
+    atualizar();
+  }
+
+  iniciarContador();
   carregar();
 })();
