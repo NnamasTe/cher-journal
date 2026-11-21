@@ -30,3 +30,11 @@ model Pagina {
 
   @@index([journalId])
 }
+
+model TentativaLogin {
+  id       String   @id @default(uuid())
+  chave    String
+  criadoEm DateTime @default(now())
+
+  @@index([chave, criadoEm])
+}
