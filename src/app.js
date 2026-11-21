@@ -26,6 +26,8 @@ app.get('/api/saude', (req, res) => res.json({ ok: true }));
 app.post('/api/auth/login', auth.login);
 app.post('/api/auth/logout', auth.logout);
 app.get('/api/auth/status', auth.status);
+app.get('/api/auth/desbloquear', auth.paginaDesbloqueio);
+app.post('/api/auth/desbloquear', auth.desbloquear);
 
 app.use('/api', auth.exigirSenhaDoSite, uploadsRouter, journalsRouter);
 
