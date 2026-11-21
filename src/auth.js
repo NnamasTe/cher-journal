@@ -33,6 +33,75 @@ function esc(texto) {
   ));
 }
 
+function dataHoraBR(data = new Date()) {
+  const partes = Object.fromEntries(
+    new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+    }).formatToParts(data).map((x) => [x.type, x.value]),
+  );
+  return `${partes.day}/${partes.month}/${partes.year}, às ${partes.hour}h${partes.minute}min${partes.second}s`;
+}
+
+function montarEmailAlerta({ porIp, ip, navegador, link }) {
+  const motivo = porIp
+    ? '✦ Cher Journal - limite de tentativas excedido (IP)'
+    : 'limite global de tentativas excedido (vários endereços).';
+  const quando = dataHoraBR();
+
+  const texto = [
+    'oiiiii',
+    'parece que alguém andou tentando adivinhar a senha do cher-journal!!!',
+    '',
+    'BLOQUEIO DE SEGURANÇA',
+    'um acesso ao login foi temporariamente bloqueado por excesso de tentativas!',
+    `motivo: ${motivo}`,
+    'Relatório da ocorrência:',
+    '',
+    `* IP do suspeito: ${ip}`,
+    `* Navegador: ${navegador}`,
+    `* Data e horário: ${quando}`,
+    '',
+    'Foi você quem errou a senha?',
+    link
+      ? `♡ Limpar meu bloqueio de acesso: ${link}\neste link é válido por apenas 1 hora após o envio. não compartilhe com ninguém!`
+      : 'Se foi você, é só esperar 15 minutos e tentar de novo.',
+    '',
+    'não foi você?',
+    'nesse caso, ignore o link acima e considere alterar a senha do site. É melhor prevenir do que deixar um visitante indesejado passear pelo nosso diário!',
+    '',
+    '✦ Cher Journal',
+    '♡',
+  ].join('\n');
+
+  const pequeno = 'font-size:12px;color:#8a7a80;margin:6px 0 0';
+  const html = `<div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#3b2f34;line-height:1.5">`
+    + `<p style="font-size:18px;margin:0 0 4px">oiiiii</p>`
+    + `<p style="margin:0 0 20px">parece que alguém andou tentando adivinhar a senha do <b>cher-journal</b>!!!</p>`
+    + `<h2 style="font-size:15px;letter-spacing:.08em;margin:0 0 6px;color:#b4506b">BLOQUEIO DE SEGURANÇA</h2>`
+    + `<p style="margin:0 0 6px">Um acesso ao login foi temporariamente bloqueado por excesso de tentativas!</p>`
+    + `<p style="margin:0 0 14px"><b>Motivo:</b> ${esc(motivo)}</p>`
+    + `<p style="margin:0 0 4px"><b>Relatório da ocorrência:</b></p>`
+    + `<ul style="margin:0 0 20px;padding-left:20px">`
+    + `<li>IP do suspeito: <code>${esc(ip)}</code></li>`
+    + `<li>Navegador: ${esc(navegador)}</li>`
+    + `<li>Data e horário: ${esc(quando)}</li>`
+    + `</ul>`
+    + `<p style="margin:0 0 10px"><b>Foi você quem errou a senha?</b></p>`
+    + (link
+      ? `<p style="margin:0"><a href="${esc(link)}" style="display:inline-block;padding:10px 18px;background:#e58aa5;color:#fff;border-radius:999px;text-decoration:none;font-weight:600">♡ Limpar meu bloqueio de acesso</a></p>`
+        + `<p style="${pequeno}">este link é válido por apenas 1 hora após o envio. não compartilhe com ninguém!</p>`
+      : `<p style="margin:0">Se foi você, é só esperar 15 minutos e tentar de novo.</p>`)
+    + `<p style="margin:24px 0 4px"><b>não foi você?</b></p>`
+    + `<p style="margin:0">nesse caso, ignore o link acima e considere alterar a senha do site. É melhor prevenir do que deixar um visitante indesejado passear pelo nosso diário!</p>`
+    + `<p style="${pequeno};margin-top:24px">✦ Cher Journal</p>`
+    + `<p style="margin:2px 0 0;color:#e58aa5">♡</p>`
+    + `</div>`;
+
+  return { texto, html };
+}
+
 async function enviarAlerta(assunto, texto, html) {
   const chaveApi = process.env.RESEND_API_KEY;
   const para = process.env.ALERTA_EMAIL;
@@ -93,8 +162,8 @@ function paginaDesbloqueio(req, res) {
   const token = req.query.t;
   if (!tokenDeDesbloqueioValido(token)) return res.status(400).type('html').send(LINK_INVALIDO);
   return res.type('html').send(paginaHtml(
-    'limpar bloqueio de login',
-    '<p>isto apaga o contador de tentativas de login:</p>'
+    'Limpar bloqueio de login',
+    '<p>Isto apaga o contador de tentativas de login.</p>'
       + `<form method="post" action="/api/auth/desbloquear?t=${encodeURIComponent(token)}">`
       + '<button type="submit">Limpar bloqueio</button></form>',
   ));
@@ -103,7 +172,7 @@ function paginaDesbloqueio(req, res) {
 async function desbloquear(req, res) {
   if (!tokenDeDesbloqueioValido(req.query.t)) return res.status(400).type('html').send(LINK_INVALIDO);
   await prisma.tentativaLogin.deleteMany({});
-  return res.type('html').send(paginaHtml('prontinho!', '<p>bloqueio limpo. você já pode entrar no site.</p>'));
+  return res.type('html').send(paginaHtml('Pronto', '<p>Bloqueio limpo. Você já pode entrar no site.</p>'));
 }
 
 function opcoesCookie() {
@@ -124,7 +193,7 @@ async function login(req, res) {
   const hash = process.env.SITE_PASSWORD_HASH;
   const segredo = process.env.SESSION_SECRET;
   if (!hash || !segredo) {
-    return res.status(500).json({ erro: 'o servidor ainda não foi configurado com a senha do site.' });
+    return res.status(500).json({ erro: 'O servidor ainda não foi configurado com a senha do site.' });
   }
 
   const chave = chaveDoCliente(req);
@@ -142,31 +211,16 @@ async function login(req, res) {
     if (!jaAvisou) {
       await prisma.tentativaLogin.create({ data: { chave: marca } });
 
-      const linhas = [
-        'um acesso ao login foi bloqueado por excesso de tentativas!!',
-        `motivo: ${doIp > MAX_POR_IP ? 'limite por IP' : 'limite global'}`,
-        `IP: ${ipDoCliente(req)}`,
-        `navegador: ${String(req.headers['user-agent'] || 'desconhecido').slice(0, 120)}`,
-        `horário: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
-      ];
-      const link = linkDeDesbloqueio();
-      const texto = [
-        ...linhas,
-        '',
-        link
-          ? `se foi só você errando a senha, limpe o bloqueio por este link (vale 1 hora, não repasse):\n${link}`
-          : 'se foi você errando a senha, pode ignorar. se não foi, considere trocar a senha do site!!!',
-      ].join('\n');
-      const html = `<p>${linhas.map(esc).join('<br>')}</p>`
-        + (link
-          ? `<p><a href="${esc(link)}" style="display:inline-block;padding:10px 16px;background:#222;color:#fff;border-radius:6px;text-decoration:none">Fui eu errando a senha: limpar bloqueio</a></p>`
-            + '<p>o link vale por 1 hora. não o encaminhe a ninguém. se não foi você, ignore o botão e considere trocar a senha do site!!!</p>'
-          : '<p>se não foi você, considere trocar a senha do site!!!</p>');
-
-      await enviarAlerta('cher journal: tentativas de login suspeitas', texto, html);
+      const { texto, html } = montarEmailAlerta({
+        porIp: doIp > MAX_POR_IP,
+        ip: ipDoCliente(req),
+        navegador: String(req.headers['user-agent'] || 'desconhecido').slice(0, 200),
+        link: linkDeDesbloqueio(),
+      });
+      await enviarAlerta('✦ Cher Journal - limite de tentativas excedido (IP)', texto, html);
     }
     res.set('Retry-After', String(JANELA_MS / 1000));
-    return res.status(429).json({ erro: 'muitas tentativas. tente de novo em alguns minutos.' });
+    return res.status(429).json({ erro: 'Muitas tentativas. Tente de novo em alguns minutos.' });
   }
 
   const correta = await bcrypt.compare(senha, hash);
