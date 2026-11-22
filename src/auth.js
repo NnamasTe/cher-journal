@@ -46,7 +46,7 @@ function dataHoraBR(data = new Date()) {
 
 function montarEmailAlerta({ porIp, ip, navegador, link }) {
   const motivo = porIp
-    ? '✦ Cher Journal - limite de tentativas excedido (IP)'
+    ? 'limite de tentativas excedido (IP).'
     : 'limite global de tentativas excedido (vários endereços).';
   const quando = dataHoraBR();
 
@@ -57,16 +57,16 @@ function montarEmailAlerta({ porIp, ip, navegador, link }) {
     'BLOQUEIO DE SEGURANÇA',
     'um acesso ao login foi temporariamente bloqueado por excesso de tentativas!',
     `motivo: ${motivo}`,
-    'Relatório da ocorrência:',
+    'relatório da ocorrência:',
     '',
     `* IP do suspeito: ${ip}`,
-    `* Navegador: ${navegador}`,
-    `* Data e horário: ${quando}`,
+    `* navegador: ${navegador}`,
+    `* data e horário: ${quando}`,
     '',
-    'Foi você quem errou a senha?',
+    'foi você quem errou a senha?',
     link
-      ? `♡ Limpar meu bloqueio de acesso: ${link}\neste link é válido por apenas 1 hora após o envio. não compartilhe com ninguém!`
-      : 'Se foi você, é só esperar 15 minutos e tentar de novo.',
+      ? `♡ limpar meu bloqueio de acesso: ${link}\neste link é válido por apenas 1 hora após o envio. não compartilhe com ninguém!`
+      : 'se foi você, é só esperar 15 minutos e tentar de novo.',
     '',
     'não foi você?',
     'nesse caso, ignore o link acima e considere alterar a senha do site. É melhor prevenir do que deixar um visitante indesejado passear pelo nosso diário!',
@@ -88,11 +88,11 @@ function montarEmailAlerta({ porIp, ip, navegador, link }) {
     + `<li>Navegador: ${esc(navegador)}</li>`
     + `<li>Data e horário: ${esc(quando)}</li>`
     + `</ul>`
-    + `<p style="margin:0 0 10px"><b>Foi você quem errou a senha?</b></p>`
+    + `<p style="margin:0 0 10px"><b>foi você quem errou a senha?</b></p>`
     + (link
-      ? `<p style="margin:0"><a href="${esc(link)}" style="display:inline-block;padding:10px 18px;background:#e58aa5;color:#fff;border-radius:999px;text-decoration:none;font-weight:600">♡ Limpar meu bloqueio de acesso</a></p>`
+      ? `<p style="margin:0"><a href="${esc(link)}" style="display:inline-block;padding:10px 18px;background:#e58aa5;color:#fff;border-radius:999px;text-decoration:none;font-weight:600">♡ limpar meu bloqueio de acesso</a></p>`
         + `<p style="${pequeno}">este link é válido por apenas 1 hora após o envio. não compartilhe com ninguém!</p>`
-      : `<p style="margin:0">Se foi você, é só esperar 15 minutos e tentar de novo.</p>`)
+      : `<p style="margin:0">se foi você, é só esperar 15 minutos e tentar de novo.</p>`)
     + `<p style="margin:24px 0 4px"><b>não foi você?</b></p>`
     + `<p style="margin:0">nesse caso, ignore o link acima e considere alterar a senha do site. É melhor prevenir do que deixar um visitante indesejado passear pelo nosso diário!</p>`
     + `<p style="${pequeno};margin-top:24px">✦ Cher Journal</p>`
@@ -102,45 +102,55 @@ function montarEmailAlerta({ porIp, ip, navegador, link }) {
   return { texto, html };
 }
 
+function limparValor(valor) {
+  return String(valor || '').trim().replace(/^["']+|["']+$/g, '').trim();
+}
+
+function listaDeDestinatarios() {
+  const todos = [
+    ...String(process.env.ALERTA_EMAILS || '').split(','),
+    process.env.ALERTA_EMAIL,
+    process.env.ALERTA1_EMAIL,
+  ].map(limparValor).filter(Boolean);
+  return [...new Set(todos)];
+}
+
 async function enviarAlerta(assunto, texto, html) {
-  const chaveApi = process.env.RESEND_API_KEY;
-  const destinatarios = (process.env.ALERTA_EMAILS || '')
-  .split(',')
-  .map((e) => e.trim().replace(/^["']|["']$/g, ''))
-  .filter(Boolean); 
+  const chaveApi = limparValor(process.env.RESEND_API_KEY);
+  const destinatarios = listaDeDestinatarios();
 
-  console.log('alerta: destinatários =', destinatarios.length,
-    '| ALERTA_EMAIL definido:', Boolean(process.env.ALERTA_EMAIL),
-    '| ALERTA1_EMAIL definido:', Boolean(process.env.ALERTA1_EMAIL));
-
-  if (!chaveApi || destinatarios.length === 0) return;
-
-  try {
-    const resposta = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${chaveApi}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'cher journal <onboarding@resend.dev>',
-        to: destinatarios,
-        subject: assunto,
-        text: texto,
-        html,
-      }),
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!resposta.ok) console.error('alerta: o Resend respondeu', resposta.status);
-  } catch (erro) {
-    console.error('alerta: falha ao enviar e-mail', erro.message);
-  }
+  console.log('alerta: destinatários =', destinatarios.length);
 
   if (!chaveApi || destinatarios.length === 0) {
-  console.error('alerta: RESEND_API_KEY ou e-mail de destino ausente');
-  return;
+    console.error('alerta: RESEND_API_KEY ou e-mail de destino ausente');
+    return;
   }
+
+  await Promise.allSettled(destinatarios.map(async (para) => {
+    try {
+      const resposta = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${chaveApi}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'cher journal <onboarding@resend.dev>',
+          to: [para],
+          subject: assunto,
+          text: texto,
+          html,
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!resposta.ok) {
+        console.error('alerta: o Resend respondeu', resposta.status, para, await resposta.text());
+      }
+    } catch (erro) {
+      console.error('alerta: falha ao enviar para', para, erro.message);
+    }
+  }));
 }
 
 function linkDeDesbloqueio() {
-  const base = process.env.SITE_URL;
+  const base = limparValor(process.env.SITE_URL);
   const segredo = process.env.SESSION_SECRET;
   if (!base || !segredo) return null;
   const token = jwt.sign({ acao: 'desbloquear' }, segredo, { expiresIn: VALIDADE_DESBLOQUEIO });
@@ -231,7 +241,13 @@ async function login(req, res) {
         navegador: String(req.headers['user-agent'] || 'desconhecido').slice(0, 200),
         link: linkDeDesbloqueio(),
       });
-      await enviarAlerta('✦ Cher Journal - limite de tentativas excedido (IP)', texto, html);
+      await enviarAlerta(
+        doIp > MAX_POR_IP
+          ? '✦ Cher Journal - limite de tentativas excedido (IP)'
+          : '✦ Cher Journal - limite global de tentativas excedido',
+        texto,
+        html,
+      );
     }
     res.set('Retry-After', String(JANELA_MS / 1000));
     return res.status(429).json({ erro: 'Muitas tentativas. Tente de novo em alguns minutos.' });
