@@ -103,6 +103,7 @@ function montarEmailAlerta({ porIp, ip, navegador, link }) {
 }
 
 async function enviarAlerta(assunto, texto, html) {
+  const chaveApi = process.env.RESEND_API_KEY;
   const destinatarios = (process.env.ALERTA_EMAILS || '')
   .split(',')
   .map((e) => e.trim().replace(/^["']|["']$/g, ''))
