@@ -104,15 +104,20 @@ function montarEmailAlerta({ porIp, ip, navegador, link }) {
 
 async function enviarAlerta(assunto, texto, html) {
   const chaveApi = process.env.RESEND_API_KEY;
-  const para = process.env.ALERTA_EMAIL;
-  if (!chaveApi || !para) return;
+  const destinatarios = [
+    process.env.ALERTA_EMAIL,
+    process.env.ALERTA1_EMAIL,
+  ].filter(Boolean);
+
+  if (!chaveApi || destinatarios.length === 0) return;
+
   try {
     const resposta = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${chaveApi}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: 'cher journal <onboarding@resend.dev>',
-        to: [para],
+        to: destinatarios,
         subject: assunto,
         text: texto,
         html,
