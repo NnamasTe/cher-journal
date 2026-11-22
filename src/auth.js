@@ -109,6 +109,10 @@ async function enviarAlerta(assunto, texto, html) {
     process.env.ALERTA1_EMAIL,
   ].filter(Boolean);
 
+  console.log('alerta: destinatários =', destinatarios.length,
+    '| ALERTA_EMAIL definido:', Boolean(process.env.ALERTA_EMAIL),
+    '| ALERTA1_EMAIL definido:', Boolean(process.env.ALERTA1_EMAIL));
+
   if (!chaveApi || destinatarios.length === 0) return;
 
   try {
