@@ -94,7 +94,7 @@ function montarEmailAlerta({ porIp, ip, navegador, link }) {
         + `<p style="${pequeno}">este link é válido por apenas 1 hora após o envio. não compartilhe com ninguém!</p>`
       : `<p style="margin:0">se foi você, é só esperar 15 minutos e tentar de novo.</p>`)
     + `<p style="margin:24px 0 4px"><b>não foi você?</b></p>`
-    + `<p style="margin:0">nesse caso, ignore o link acima e considere alterar a senha do site. É melhor prevenir do que deixar um visitante indesejado passear pelo nosso diário!</p>`
+    + `<p style="margin:0">nesse caso, ignore o link acima e considere alterar a senha do site. É melhor prevenir do que remediar!</p>`
     + `<p style="${pequeno};margin-top:24px">✦ Cher Journal</p>`
     + `<p style="margin:2px 0 0;color:#e58aa5">♡</p>`
     + `</div>`;
