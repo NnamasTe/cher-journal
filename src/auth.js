@@ -128,6 +128,11 @@ async function enviarAlerta(assunto, texto, html) {
   } catch (erro) {
     console.error('alerta: falha ao enviar e-mail', erro.message);
   }
+
+  if (!chaveApi || destinatarios.length === 0) {
+  console.error('alerta: RESEND_API_KEY ou e-mail de destino ausente');
+  return;
+  }
 }
 
 function linkDeDesbloqueio() {
