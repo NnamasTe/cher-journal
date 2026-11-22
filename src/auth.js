@@ -103,11 +103,10 @@ function montarEmailAlerta({ porIp, ip, navegador, link }) {
 }
 
 async function enviarAlerta(assunto, texto, html) {
-  const chaveApi = process.env.RESEND_API_KEY;
-  const destinatarios = [
-    process.env.ALERTA_EMAIL,
-    process.env.ALERTA1_EMAIL,
-  ].filter(Boolean);
+  const destinatarios = (process.env.ALERTA_EMAILS || '')
+  .split(',')
+  .map((e) => e.trim().replace(/^["']|["']$/g, ''))
+  .filter(Boolean); 
 
   console.log('alerta: destinatários =', destinatarios.length,
     '| ALERTA_EMAIL definido:', Boolean(process.env.ALERTA_EMAIL),
